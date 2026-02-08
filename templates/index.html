@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBNN DX-1 | Live Interface</title>
+    <meta name="description" content="DBNN DX-1 - The next evolution of conversational AI, live.">
+
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --brand-primary: #6366f1;
+            --brand-glow: rgba(99, 102, 241, 0.6);
+            --bg-deep: #050508;
+            --glass-surface: rgba(10, 10, 12, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #neural-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 120%);
+            pointer-events: none;
+        }
+
+        .status-pill-container {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .status-pill {
+            pointer-events: auto;
+            background: rgba(15, 15, 20, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 8px 16px;
+            border-radius: 99px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        .logo-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #6366f1;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #6366f1;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+        #chat-section {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 100px 0 140px 0;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .chat-bubble {
+            margin-bottom: 24px;
+            width: fit-content;
+            max-width: 85%;
+            animation: slide-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes slide-up { to { opacity: 1; transform: translateY(0); } }
+
+        .chat-bubble-user {
+            margin-left: auto;
+            margin-right: 20px;
+            background: #fff;
+            color: #000;
+            padding: 12px 20px;
+            border-radius: 20px 20px 4px 20px;
+            font-weight: 500;
+        }
+
+        .chat-bubble-ai {
+            margin-left: 20px;
+            background: transparent;
+            color: #e2e8f0;
+            display: flex;
+            gap: 16px;
+        }
+
+        .ai-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .input-island-container {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 0 20px;
+            z-index: 50;
+        }
+
+        .input-island {
+            width: 100%;
+            max-width: 700px;
+            background: rgba(10, 10, 15, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #message-input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 12px 16px;
+            font-size: 16px;
+            width: 100%;
+            resize: none;
+            outline: none;
+            max-height: 200px;
+        }
+
+        .action-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+            color: #a1a1aa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn.primary { background: white; color: black; }
+        .action-btn.primary:hover { background: #e2e8f0; transform: scale(1.05); }
+
+        .thinking-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        .hyper-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: var(--brand-primary);
+            border-radius: 50%;
+            animation: hyper-spin 0.4s linear infinite;
+        }
+        @keyframes hyper-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .ai-content { font-size: 15px; line-height: 1.7; }
+        .typing-cursor { display: inline-block; width: 8px; height: 18px; background: var(--brand-primary); margin-left: 4px; animation: blink 0.8s infinite; vertical-align: middle; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <canvas id="neural-canvas"></canvas>
+    <div class="vignette"></div>
+
+    <div class="status-pill-container">
+        <div class="status-pill">
+            <span class="logo-text">DX-1 CORE</span>
+            <div class="status-dot"></div>
+        </div>
+    </div>
+
+    <section id="chat-section">
+        <div id="chat-container" class="chat-container">
+            <div class="chat-bubble chat-bubble-ai">
+                <div class="ai-avatar"><i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i></div>
+                <div class="ai-content"><p><strong>DX-1 Initialized.</strong></p><p>Step-3.5 Flash engine online. System optimized for high speed. How can I help?</p></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="input-island-container">
+        <form id="chat-form" class="input-island">
+            <div class="flex items-end gap-2 p-1">
+                <textarea id="message-input" placeholder="Message DX-1..." rows="1"></textarea>
+                <button type="submit" id="send-button" class="action-btn primary">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script type="module">
+        lucide.createIcons();
+
+        // UI Helpers
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const chatForm = document.getElementById('chat-form');
+
+        const scrollToBottom = () => { chatContainer.scrollTop = chatContainer.scrollHeight; };
+
+        // Handle Enter key for sending
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Real-time Typing Effect
+        async function typeText(element, markdownText) {
+            const rawHtml = marked.parse(markdownText);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = rawHtml;
+
+            element.innerHTML = '';
+            const cursor = document.createElement('span');
+            cursor.className = 'typing-cursor';
+            element.appendChild(cursor);
+
+            let currentText = "";
+            const words = markdownText.split(' ');
+
+            for (const word of words) {
+                currentText += word + " ";
+                element.innerHTML = marked.parse(currentText) + '<span class="typing-cursor"></span>';
+                scrollToBottom();
+                await new Promise(resolve => setTimeout(resolve, 15));
+            }
+
+            element.innerHTML = marked.parse(currentText);
+            scrollToBottom();
+        }
+
+        function showThinking() {
+            const div = document.createElement('div');
+            div.id = 'thinking-indicator';
+            div.className = 'chat-bubble chat-bubble-ai';
+            div.innerHTML = `
+                <div class="ai-avatar"><i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i></div>
+                <div class="thinking-container">
+                    <div class="hyper-spinner"></div>
+                    <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">DX-1 Analyzing...</div>
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            lucide.createIcons({ nodes: [div] });
+            scrollToBottom();
+        }
+
+        function hideThinking() {
+            const el = document.getElementById('thinking-indicator');
+            if(el) el.remove();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = messageInput.value.trim();
+            if(!msg) return;
+
+            // Add User Message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat-bubble chat-bubble-user';
+            userDiv.innerText = msg;
+            chatContainer.appendChild(userDiv);
+
+            messageInput.value = '';
+            showThinking();
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+
+                const data = await response.json();
+                hideThinking();
+
+                const aiDiv = document.createElement('div');
+                aiDiv.className = 'chat-bubble chat-bubble-ai';
+                aiDiv.innerHTML = `
+                    <div class="ai-avatar"><i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i></div>
+                    <div class="ai-content"></div>
+                `;
+                chatContainer.appendChild(aiDiv);
+                lucide.createIcons({ nodes: [aiDiv] });
+
+                await typeText(aiDiv.querySelector('.ai-content'), data.reply);
+
+            } catch (err) {
+                hideThinking();
+                const errDiv = document.createElement('div');
+                errDiv.className = 'chat-bubble chat-bubble-ai text-red-400';
+                errDiv.innerText = "Connection Failed. Check Local Server.";
+                chatContainer.appendChild(errDiv);
+            }
+        });
+
+        // Neural Canvas Animation
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let w, h;
+        const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
+        window.addEventListener('resize', resize);
+        resize();
+
+        function animate() {
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.2)';
+            ctx.fillRect(0, 0, w, h);
+            for(let i=0; i<15; i++) {
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+                ctx.beginPath();
+                ctx.arc(Math.random()*w, Math.random()*h, Math.random()*1.5, 0, Math.PI*2);
+                ctx.fill();
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
