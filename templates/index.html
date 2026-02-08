@@ -1,394 +1,1211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DBNN DX-1 | Live Interface</title>
-    <meta name="description" content="DBNN DX-1 - The next evolution of conversational AI, live.">
+    <title>DBNN DX | Live Interface</title>
+    <meta name="description" content="DBNN DX - The next evolution of conversational AI, live.">
 
     <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Markdown & Syntax Highlighting -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
 
+    <!-- Premium Styles -->
     <style>
         :root {
-            --brand-primary: #6366f1;
-            --brand-glow: rgba(99, 102, 241, 0.6);
-            --bg-deep: #050508;
-            --glass-surface: rgba(10, 10, 12, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --brand-primary: #6366f1; /* Indigo */
+            --brand-secondary: #a855f7; /* Purple */
+            --brand-accent: #ec4899; /* Pink */
         }
-
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-deep);
+            background-color: #030014;
             color: #e2e8f0;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
+            overflow-x: hidden;
         }
-
-        #neural-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            pointer-events: none;
+        .bg-grid-pattern {
+            background-size: 50px 50px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: linear-gradient(to bottom, black 20%, white 90%, black 100%);
         }
-
-        .vignette {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            background: radial-gradient(circle at center, transparent 0%, var(--bg-deep) 120%);
-            pointer-events: none;
+        .glass-nav {
+             background: rgba(3, 0, 20, 0.7);
+             backdrop-filter: blur(16px);
+             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        .status-pill-container {
-            position: fixed;
-            top: 20px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            z-index: 50;
-            pointer-events: none;
-        }
-
-        .status-pill {
-            pointer-events: auto;
-            background: rgba(15, 15, 20, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            padding: 8px 16px;
-            border-radius: 99px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
-        }
-
-        .logo-text {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 14px;
-            color: white;
-            letter-spacing: 1px;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background-color: #6366f1;
+        .glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, rgba(168,85,247,0.05) 30%, rgba(0,0,0,0) 70%);
             border-radius: 50%;
-            box-shadow: 0 0 8px #6366f1;
-            animation: pulse-dot 2s infinite;
-        }
-        @keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
-
-        #chat-section {
-            position: relative;
-            z-index: 10;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            pointer-events: none;
+            mix-blend-mode: screen;
         }
 
+        /* --- Textarea Input Styles --- */
+        .form-input-wrapper {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.2s ease;
+        }
+        .form-input-wrapper:focus-within {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
+        }
+        .form-input {
+            color: #fff;
+            background-color: transparent;
+            appearance: none;
+            -webkit-appearance: none;
+            resize: none;
+            overflow-y: hidden;
+            line-height: 1.6;
+        }
+        .form-input:focus {
+            outline: none;
+            box-shadow: none;
+            border-color: transparent;
+        }
+        .form-input::placeholder {
+             color: #6b7280;
+        }
+
+        /* --- Chat UI Specific Styles --- */
         .chat-container {
-            flex-grow: 1;
             overflow-y: auto;
-            scroll-behavior: smooth;
-            padding: 100px 0 140px 0;
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
         }
 
         .chat-bubble {
-            margin-bottom: 24px;
-            width: fit-content;
-            max-width: 85%;
-            animation: slide-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-            opacity: 0;
-            transform: translateY(20px);
+            max-width: 80%;
+            word-wrap: break-word;
         }
 
-        @keyframes slide-up { to { opacity: 1; transform: translateY(0); } }
-
         .chat-bubble-user {
-            margin-left: auto;
-            margin-right: 20px;
-            background: #fff;
-            color: #000;
-            padding: 12px 20px;
-            border-radius: 20px 20px 4px 20px;
-            font-weight: 500;
+            padding: 12px 18px;
+            border-radius: 20px;
+            background-color: var(--brand-primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+            align-self: flex-end;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: pop-in 0.3s ease forwards;
+        }
+
+        .chat-bubble-user img,
+        .chat-bubble-user video {
+            width: auto;
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
+        @keyframes pop-in {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .chat-bubble-ai {
-            margin-left: 20px;
-            background: transparent;
             color: #e2e8f0;
+            align-self: flex-start;
             display: flex;
-            gap: 16px;
+            align-items: flex-start;
+            gap: 12px;
+            width: 100%;
+            max-width: 100%;
+            position: relative;
         }
 
         .ai-avatar {
+            flex-shrink: 0;
             width: 32px;
             height: 32px;
-            border-radius: 8px;
-            background: rgba(99, 102, 241, 0.2);
-            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            margin-top: 4px;
         }
 
-        .input-island-container {
-            position: fixed;
-            bottom: 30px;
-            left: 0;
+        .ai-content {
+            min-width: 0;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            padding: 0 20px;
-            z-index: 50;
+            line-height: 1.6;
         }
 
-        .input-island {
-            width: 100%;
-            max-width: 700px;
-            background: rgba(10, 10, 15, 0.75);
-            backdrop-filter: blur(20px);
+        .ai-content p {
+            margin-bottom: 0.75rem;
+            white-space: pre-wrap;
+        }
+        .ai-content ul, .ai-content ol {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+        }
+        .ai-content ul { list-style-type: disc; }
+        .ai-content ol { list-style-type: decimal; }
+
+        .ai-content code {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Inline Code */
+        .ai-content :not(pre) > code {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 2px 6px;
+            color: #f0f0f0;
+        }
+
+        /* Block Code */
+        .code-block-wrapper {
+            position: relative;
+            margin: 12px 0;
+            border-radius: 12px;
+            overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
+            background-color: #282c34; /* Atom One Dark bg */
         }
 
-        #message-input {
-            background: transparent;
-            border: none;
-            color: white;
-            padding: 12px 16px;
-            font-size: 16px;
-            width: 100%;
-            resize: none;
-            outline: none;
-            max-height: 200px;
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .code-lang {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 12px;
         }
 
         .action-btn {
-            width: 40px;
-            height: 40px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.03);
-            color: #a1a1aa;
+            gap: 6px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: color 0.2s;
+        }
+        .action-btn:hover {
+            color: #fff;
         }
 
-        .action-btn.primary { background: white; color: black; }
-        .action-btn.primary:hover { background: #e2e8f0; transform: scale(1.05); }
+        .ai-content pre {
+            margin: 0;
+            padding: 16px;
+            overflow-x: auto;
+            background: transparent;
+            white-space: pre !important;
+        }
 
+        .ai-content pre code.hljs {
+            padding: 0;
+            background: transparent;
+            white-space: pre !important;
+        }
+
+        /* Cursor effect */
+        .typing-cursor::after {
+            content: '▋';
+            color: var(--brand-primary);
+            animation: blink 1s step-start infinite;
+            margin-left: 2px;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- Thinking Animation Styles --- */
         .thinking-container {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 10px 0;
+            gap: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #94a3b8; /* slate-400 */
+            padding: 8px 0;
+            opacity: 0;
+            animation: fade-in-thinking 0.3s ease forwards;
+        }
+        @keyframes fade-in-thinking {
+            to { opacity: 1; }
         }
 
-        .hyper-spinner {
+        .thinking-spinner {
             width: 16px;
             height: 16px;
-            border: 2px solid transparent;
+            border: 2px solid rgba(255, 255, 255, 0.1);
             border-top-color: var(--brand-primary);
             border-radius: 50%;
-            animation: hyper-spin 0.4s linear infinite;
+            animation: spin 1s linear infinite;
         }
-        @keyframes hyper-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
-        .ai-content { font-size: 15px; line-height: 1.7; }
-        .typing-cursor { display: inline-block; width: 8px; height: 18px; background: var(--brand-primary); margin-left: 4px; animation: blink 0.8s infinite; vertical-align: middle; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .thinking-text {
+            background: linear-gradient(to right, #94a3b8, #64748b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 500;
+        }
+
+        @keyframes pulse-avatar {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.95); }
+        }
+        .loading-avatar {
+            animation: pulse-avatar 1.5s ease-in-out infinite;
+        }
+
+        #model-select-button {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #model-select-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Updated Input Buttons (File & Web) */
+        #file-upload-button, #web-search-button {
+            background-color: transparent;
+            border: 1px solid transparent;
+            color: #94a3b8;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 4px; /* Align with text area bottom */
+        }
+        #file-upload-button:hover, #web-search-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+        #web-search-button.active {
+            background-color: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+        }
+
+        #attachment-preview-container {
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 8px 0 8px;
+        }
+        #attachment-preview-container img,
+        #attachment-preview-container video {
+            height: 40px;
+            width: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        #attachment-preview-container .file-info {
+            font-size: 12px;
+            color: #e2e8f0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        #remove-attachment-btn {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background-color: #334155;
+            color: #e2e8f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #030014;
+            line-height: 1;
+            z-index: 10;
+        }
+
+        /* --- Model Modal Styles --- */
+        #model-modal {
+            transition: opacity 0.2s ease;
+        }
+        #modal-content {
+            background-color: #0F0D21;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            animation: modal-pop-in 0.3s ease;
+        }
+
+        @keyframes modal-pop-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .model-card {
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .model-card:hover {
+            background-color: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .model-card.active {
+            background-color: rgba(99, 102, 241, 0.15);
+            border-color: var(--brand-primary);
+        }
+        .model-card-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .model-card-icon-f1 { background-color: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+        .model-card-icon-0c { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+        .model-card-icon-d1 { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+        .model-card-icon-v1 { background-color: rgba(236, 72, 153, 0.2); color: #fbcfe8; }
+        .model-card-icon-study { background-color: rgba(52, 211, 153, 0.2); color: #6ee7b7; }
+
+        .model-card .check-icon {
+            color: var(--brand-primary);
+        }
+
+        /* --- Canvas / Artifact Styles --- */
+        #canvas-overlay {
+            position: fixed;
+            top: 0; right: 0; bottom: 0;
+            width: 50%;
+            background: #0F0D21;
+            border-left: 1px solid rgba(255,255,255,0.1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            z-index: 60;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        #canvas-overlay.open {
+            transform: translateX(0);
+        }
+        #canvas-overlay.canvas-expanded {
+            width: 100% !important;
+        }
+        #canvas-overlay.study-mode .canvas-editor-container {
+            display: none;
+        }
+        #canvas-overlay.study-mode .canvas-preview-container {
+            height: 100%;
+        }
+
+        .canvas-header {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(3, 0, 20, 0.5);
+        }
+        .canvas-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .canvas-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .canvas-control-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .canvas-control-btn:hover { color: #fff; background-color: rgba(255,255,255,0.1); }
+
+        .canvas-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .canvas-split {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .canvas-editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+        }
+        .canvas-preview-container {
+            flex: 1;
+            background: #fff;
+            position: relative;
+        }
+        #canvas-editor {
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: none;
+            padding: 16px;
+            font-family: 'Menlo', 'Monaco', monospace;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+        }
+        #canvas-preview-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .canvas-toolbar {
+            padding: 8px 16px;
+            background: #1e1e1e;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .run-btn {
+            background: var(--brand-primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .run-btn:hover {
+            filter: brightness(1.1);
+        }
+
     </style>
 </head>
-<body>
+<body class="antialiased">
 
-    <canvas id="neural-canvas"></canvas>
-    <div class="vignette"></div>
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 h-12 flex justify-between items-center">
+            <div class="flex items-center space-x-3 group cursor-pointer">
+                <div class="w-8 h-8 relative">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-lg rotate-6 group-hover:rotate-12 transition-transform opacity-70 blur-md"></div>
+                     <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center border border-white/20">
+                        <span class="text-white font-black text-xs tracking-tighter">DB</span>
+                    </div>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-white">DX</span>
+            </div>
 
-    <div class="status-pill-container">
-        <div class="status-pill">
-            <span class="logo-text">DX-1 CORE</span>
-            <div class="status-dot"></div>
+            <button id="nav-canvas-toggle" class="hidden text-sm text-gray-400 hover:text-white flex items-center gap-2 border border-white/10 px-3 py-1 rounded-full transition-colors">
+                <i data-lucide="layout" class="w-4 h-4"></i> Open Canvas
+            </button>
         </div>
-    </div>
+    </nav>
 
-    <section id="chat-section">
-        <div id="chat-container" class="chat-container">
-            <div class="chat-bubble chat-bubble-ai">
-                <div class="ai-avatar"><i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i></div>
-                <div class="ai-content"><p><strong>DX-1 Initialized.</strong></p><p>Step-3.5 Flash engine online. System optimized for high speed. How can I help?</p></div>
+    <!-- Main Chat Section -->
+    <section class="relative h-screen flex flex-col pt-12 overflow-hidden transition-all duration-300" id="main-section">
+        <div class="glow top-[-30%] left-[-20%] opacity-60"></div>
+        <div class="glow bottom-[-30%] right-[-20%] !bg-[radial-gradient(circle,rgba(236,72,153,0.12)_0%,rgba(0,0,0,0)_70%)] opacity-60"></div>
+        <div class="absolute inset-0 bg-grid-pattern z-0"></div>
+
+        <div class="relative z-10 max-w-6xl w-full mx-auto px-6 flex-grow flex flex-col overflow-hidden">
+
+            <!-- Chat Messages Container -->
+            <div id="chat-container" class="chat-container flex-grow py-8 space-y-6 overflow-y-auto">
+                <div class="chat-bubble chat-bubble-ai">
+                    <div class="ai-avatar">
+                         <i data-lucide="zap" class="w-5 h-5 text-white/80"></i>
+                    </div>
+                    <div class="ai-content animate-pop">
+                        <p>Welcome to the DBNN DX Live Interface. I am online and operational, created by DBNN.</p>
+                        <p>Select <strong>F2</strong> for speed, <strong>0c v.2</strong> for coding, or <strong>Study</strong> to upload notes and get a comprehensive study guide.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="sticky bottom-0 z-10 pt-4 pb-8 bg-gradient-to-t from-[#030014] via-[#030014] to-transparent flex-shrink-0">
+                <form id="chat-form" class="flex items-end space-x-4">
+
+                    <!-- Main Input Wrapper -->
+                    <div class="form-input-wrapper w-full flex flex-col rounded-2xl">
+
+                        <!-- Attachment Preview -->
+                        <div id="attachment-preview-container" class="hidden"></div>
+
+                        <!-- Input Row -->
+                        <div class="flex items-end space-x-2 px-3 pb-2">
+
+                            <!-- File Upload Button (Plus Icon) -->
+                            <input type="file" id="file-upload-input" accept="image/*,video/*" class="hidden">
+                            <button type="button" id="file-upload-button" class="flex-shrink-0" title="Attach file">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                            </button>
+
+                            <textarea id="message-input" placeholder="Message DX (Shift+Enter for new line)..." class="form-input flex-grow pl-2 py-3.5 text-base" rows="1"></textarea>
+
+                            <!-- Web Search Button (Cosmetic Only for this version) -->
+                            <button type="button" id="web-search-button" class="flex-shrink-0" title="Web Search (Simulated)">
+                                <i data-lucide="globe" class="w-5 h-5"></i>
+                            </button>
+
+                            <!-- Model Select Button -->
+                            <div class="flex items-center mb-1.5">
+                                <button type="button" id="model-select-button" title="Change model">
+                                    <i data-lucide="zap" class="w-4 h-4"></i>
+                                    <span id="model-select-name">F2</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Send Button -->
+                    <button type="submit" id="send-button" class="bg-white text-black p-4 rounded-full text-sm font-bold transition-all hover:scale-110 hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.6)] flex-shrink-0">
+                        <i data-lucide="send" class="w-6 h-6"></i>
+                    </button>
+                </form>
             </div>
         </div>
     </section>
 
-    <div class="input-island-container">
-        <form id="chat-form" class="input-island">
-            <div class="flex items-end gap-2 p-1">
-                <textarea id="message-input" placeholder="Message DX-1..." rows="1"></textarea>
-                <button type="submit" id="send-button" class="action-btn primary">
-                    <i data-lucide="send" class="w-5 h-5"></i>
+    <!-- Canvas Sidebar (0c Model & Study Mode) -->
+    <div id="canvas-overlay">
+        <div class="canvas-header">
+            <div class="canvas-title">
+                <i data-lucide="layout" class="w-4 h-4 text-purple-400"></i>
+                <span id="canvas-title-text">DX Canvas</span> <span class="text-xs text-gray-500 ml-2 font-normal">Live Environment</span>
+            </div>
+            <div class="canvas-controls">
+                <button class="canvas-control-btn" id="download-canvas-btn" title="Download as HTML">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+                <button class="canvas-control-btn" id="expand-canvas-btn" title="Maximize">
+                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
+                </button>
+                <button class="canvas-control-btn canvas-close" id="close-canvas-btn" title="Close">
+                    <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-        </form>
+        </div>
+        <div class="canvas-body">
+            <div class="canvas-split">
+                <!-- Editor Section -->
+                <div class="canvas-editor-container">
+                    <div class="canvas-toolbar">
+                        <span class="text-xs text-gray-500 flex items-center">Editable</span>
+                        <button id="run-code-btn" class="run-btn">
+                            <i data-lucide="play" class="w-3 h-3"></i> Run
+                        </button>
+                    </div>
+                    <textarea id="canvas-editor" spellcheck="false"></textarea>
+                </div>
+                <!-- Preview Section -->
+                <div class="canvas-preview-container">
+                     <iframe id="canvas-preview-frame"></iframe>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Model Select Modal -->
+    <div id="model-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div id="modal-overlay" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div id="modal-content" class="relative z-10 p-6">
+            <h3 class="text-xl font-bold text-white mb-6">Select a Model</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div class="model-card active" data-model="F2">
+                    <div class="model-card-icon model-card-icon-f1"><i data-lucide="zap" class="w-6 h-6"></i></div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-white">F2 (Fast)</h4>
+                        <p class="text-sm text-gray-400">Fastest model, web-connected.</p>
+                    </div>
+                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5"></i>
+                </div>
+
+                <div class="model-card" data-model="0c v.2">
+                    <div class="model-card-icon model-card-icon-0c"><i data-lucide="terminal-square" class="w-6 h-6"></i></div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-white">0c v.2 (Code)</h4>
+                        <p class="text-sm text-gray-400">Coding engine with Live Canvas.</p>
+                    </div>
+                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
+                </div>
+
+                <div class="model-card" data-model="D-2">
+                    <div class="model-card-icon model-card-icon-d1"><i data-lucide="brain-circuit" class="w-6 h-6"></i></div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-white">D-2 (Deep)</h4>
+                        <p class="text-sm text-gray-400">Deep reasoning & logic.</p>
+                    </div>
+                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
+                </div>
+
+                <!-- Study Mode -->
+                <div class="model-card" data-model="Study">
+                    <div class="model-card-icon model-card-icon-study"><i data-lucide="book-open" class="w-6 h-6"></i></div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-white">Study Mode</h4>
+                        <p class="text-sm text-gray-400">Upload notes, get study guides.</p>
+                    </div>
+                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
+                </div>
+
+                <div class="model-card" data-model="V-1">
+                    <div class="model-card-icon model-card-icon-v1"><i data-lucide="eye" class="w-6 h-6"></i></div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-white">V-1 (Vision)</h4>
+                        <p class="text-sm text-gray-400">Multimodal analysis.</p>
+                    </div>
+                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic -->
     <script type="module">
         lucide.createIcons();
 
-        // UI Helpers
+        // --- System Prompts (Maintained for logic) ---
+        const PROMPTS = {
+            'F2': "You are DX F2. You are optimized for EXTREME SPEED. Provide extremely concise, precise answers. Use markdown.",
+            '0c v.2': "You are DX 0c v.2, a dedicated CODING ENGINE. \n\nPROTOCOL:\n1. If this is a NEW complex request, first OUTLINE a brief architectural plan (bullet points). Ask the user to type 'yes' to proceed.\n2. IF the user says 'yes' or 'confirm' or clearly approves, THEN output the full code IMMEDIATELY in a single markdown block (e.g. ```html ... ```).\n3. If it is a simple fix or small code snippet, just output it immediately.",
+            'D-2': "You are DX D-2. You are a DEEP REASONING engine. Provide comprehensive, deep, philosophical, and thoroughly researched answers. If asked about hacking, explain the security implications safely.",
+            'V-1': "You are DX V-1, a vision-capable assistant. Analyze the input and answer questions.",
+            'Study': "You are DX Study Assistant. \nPROTOCOL:\n1. Analyze the input/notes. First, PROPOSE a structure for the Study Guide (e.g., 'I will create a guide with: Summary, Key Terms...'). Ask 'Type yes to generate'.\n2. IF the user says 'yes', generate a COMPLETE HTML DOCUMENT (no markdown blocks, just raw html) that acts as the 'Study Guide'.\nCONTENT MUST INCLUDE: \n- A clear Title. \n- 'Simplified Explanation'. \n- 'Key Takeaways'. \n- 'Live Translation'. \n- Use TailwindCSS."
+        };
+
+        const THOUGHTS = {
+            'F2': ["Analyzing...", "Checking context...", "Finalizing..."],
+            '0c v.2': ["Analyzing requirements...", "Drafting architecture...", "Coding...", "Previewing..."],
+            'D-2': ["Deep searching...", "Synthesizing context...", "Reasoning...", "Structuring..."],
+            'V-1': ["Scanning visual data...", "Identifying elements...", "Generating description..."],
+            'Study': ["Reading notes...", "Simplifying concepts...", "Structuring guide...", "Translating terms..."]
+        };
+
+        const MODEL_DETAILS = {
+            'F2': { name: 'F2', icon: 'zap' },
+            '0c v.2': { name: '0c v.2', icon: 'terminal-square' },
+            'D-2': { name: 'D-2', icon: 'brain-circuit' },
+            'V-1': { name: 'V-1', icon: 'eye' },
+            'Study': { name: 'Study Mode', icon: 'book-open' }
+        };
+
+        // --- DOM Elements ---
         const chatContainer = document.getElementById('chat-container');
-        const messageInput = document.getElementById('message-input');
         const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const fileUploadButton = document.getElementById('file-upload-button');
+        const fileUploadInput = document.getElementById('file-upload-input');
+        const webSearchButton = document.getElementById('web-search-button');
 
-        const scrollToBottom = () => { chatContainer.scrollTop = chatContainer.scrollHeight; };
+        // Canvas Elements
+        const canvasOverlay = document.getElementById('canvas-overlay');
+        const canvasEditor = document.getElementById('canvas-editor');
+        const canvasPreviewFrame = document.getElementById('canvas-preview-frame');
+        const closeCanvasBtn = document.getElementById('close-canvas-btn');
+        const expandCanvasBtn = document.getElementById('expand-canvas-btn');
+        const downloadCanvasBtn = document.getElementById('download-canvas-btn');
+        const runCodeBtn = document.getElementById('run-code-btn');
+        const navCanvasToggle = document.getElementById('nav-canvas-toggle');
+        const mainSection = document.getElementById('main-section');
+        const canvasTitleText = document.getElementById('canvas-title-text');
 
-        // Handle Enter key for sending
+        // State
+        let selectedModel = 'F2';
+        let chatHistory = [];
+        let isLoading = false;
+        let attachedFile = null;
+        let isWebSearchEnabled = false;
+
+        marked.setOptions({
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            breaks: true
+        });
+
+        // --- UI Logic ---
+        function scrollChatToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Enter key to send
         messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                chatForm.dispatchEvent(new Event('submit'));
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
             }
         });
 
-        // Real-time Typing Effect
-        async function typeText(element, markdownText) {
-            const rawHtml = marked.parse(markdownText);
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = rawHtml;
+        // Web Search Toggle
+        webSearchButton.addEventListener('click', () => {
+            isWebSearchEnabled = !isWebSearchEnabled;
+            if (isWebSearchEnabled) {
+                webSearchButton.classList.add('active');
+            } else {
+                webSearchButton.classList.remove('active');
+            }
+        });
 
-            element.innerHTML = '';
-            const cursor = document.createElement('span');
-            cursor.className = 'typing-cursor';
-            element.appendChild(cursor);
+        // Canvas Logic
+        function toggleCanvas(show) {
+            if (show) {
+                canvasOverlay.classList.add('open');
+                mainSection.style.width = '50%';
+                navCanvasToggle.classList.remove('hidden');
+            } else {
+                canvasOverlay.classList.remove('open');
+                mainSection.style.width = '100%';
+            }
+        }
 
-            let currentText = "";
-            const words = markdownText.split(' ');
+        closeCanvasBtn.addEventListener('click', () => {
+            canvasOverlay.classList.remove('canvas-expanded');
+            expandCanvasBtn.innerHTML = `<i data-lucide="maximize-2" class="w-4 h-4"></i>`;
+            lucide.createIcons({ nodes: [expandCanvasBtn] });
+            toggleCanvas(false)
+        });
+        navCanvasToggle.addEventListener('click', () => toggleCanvas(true));
 
-            for (const word of words) {
-                currentText += word + " ";
-                element.innerHTML = marked.parse(currentText) + '<span class="typing-cursor"></span>';
-                scrollToBottom();
-                await new Promise(resolve => setTimeout(resolve, 15));
+        expandCanvasBtn.addEventListener('click', () => {
+            canvasOverlay.classList.toggle('canvas-expanded');
+            const isExpanded = canvasOverlay.classList.contains('canvas-expanded');
+            const icon = isExpanded ? 'minimize-2' : 'maximize-2';
+            expandCanvasBtn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+            expandCanvasBtn.title = isExpanded ? 'Minimize' : 'Maximize';
+            lucide.createIcons({ nodes: [expandCanvasBtn] });
+        });
+
+        downloadCanvasBtn.addEventListener('click', () => {
+            const content = canvasEditor.value;
+            if (!content) return;
+
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dx-canvas-export.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        function updateCanvas(code) {
+            canvasEditor.value = code;
+            runCanvasCode();
+            toggleCanvas(true);
+        }
+
+        function runCanvasCode() {
+            const code = canvasEditor.value;
+            const iframeDoc = canvasPreviewFrame.contentDocument || canvasPreviewFrame.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(code);
+            iframeDoc.close();
+        }
+
+        runCodeBtn.addEventListener('click', runCanvasCode);
+
+        // Helper to add icons and events to code blocks
+        function postProcessCodeBlocks(element) {
+             const preBlocks = element.querySelectorAll('pre');
+            preBlocks.forEach(pre => {
+                // If wrapper already exists, skip
+                if (pre.parentNode.classList.contains('code-block-wrapper')) return;
+
+                const codeEl = pre.querySelector('code');
+                const rawCode = codeEl ? codeEl.innerText : pre.innerText;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'code-block-wrapper';
+
+                const header = document.createElement('div');
+                header.className = 'code-header';
+
+                const langSpan = document.createElement('span');
+                langSpan.className = 'code-lang';
+                langSpan.innerText = 'Code';
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'code-actions';
+
+                // Copy Button
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'action-btn';
+                copyBtn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy';
+                copyBtn.onclick = () => {
+                    navigator.clipboard.writeText(rawCode);
+                    copyBtn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
+                    lucide.createIcons({ nodes: [copyBtn] });
+                    setTimeout(() => copyBtn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy', 2000);
+                };
+
+                actionsDiv.appendChild(copyBtn);
+
+                // Open in Canvas Button (Only for 0c or HTML/CSS/JS)
+                if (selectedModel === '0c v.2' || rawCode.includes('<html') || rawCode.includes('<!DOCTYPE')) {
+                    const canvasBtn = document.createElement('button');
+                    canvasBtn.className = 'action-btn';
+                    canvasBtn.innerHTML = '<i data-lucide="layout" class="w-3 h-3"></i> Open Canvas';
+                    canvasBtn.onclick = () => updateCanvas(rawCode);
+                    actionsDiv.appendChild(canvasBtn);
+                    lucide.createIcons({ nodes: [canvasBtn] });
+
+                    // Auto-open if 0c and looks like full page
+                    if (selectedModel === '0c v.2' && rawCode.length > 50) {
+                        updateCanvas(rawCode);
+                    }
+                }
+
+                header.appendChild(langSpan);
+                header.appendChild(actionsDiv);
+
+                pre.parentNode.insertBefore(wrapper, pre);
+                wrapper.appendChild(header);
+                wrapper.appendChild(pre);
+                lucide.createIcons({ nodes: [copyBtn] });
+            });
+            lucide.createIcons({ nodes: element });
+        }
+
+        // --- Live Typing Effect ---
+        async function typeWriterEffect(element, fullText) {
+            if (fullText.length < 50) {
+                element.innerHTML = marked.parse(fullText);
+                postProcessCodeBlocks(element);
+                return;
             }
 
-            element.innerHTML = marked.parse(currentText);
-            scrollToBottom();
+            let currentText = '';
+            const chunkSize = 4;
+            const delay = 5;
+
+            return new Promise(resolve => {
+                let i = 0;
+                element.classList.add('typing-cursor');
+
+                const interval = setInterval(() => {
+                    if (i >= fullText.length) {
+                        clearInterval(interval);
+                        element.classList.remove('typing-cursor');
+                        element.innerHTML = marked.parse(fullText);
+                        postProcessCodeBlocks(element);
+                        scrollChatToBottom();
+                        resolve();
+                        return;
+                    }
+                    currentText += fullText.substring(i, i + chunkSize);
+                    i += chunkSize;
+
+                    let tempText = currentText;
+                    const codeFenceCount = (tempText.match(/```/g) || []).length;
+                    if (codeFenceCount % 2 !== 0) {
+                        tempText += '\n```';
+                    }
+
+                    element.innerHTML = marked.parse(tempText);
+                    scrollChatToBottom();
+                }, delay);
+            });
         }
 
-        function showThinking() {
-            const div = document.createElement('div');
-            div.id = 'thinking-indicator';
-            div.className = 'chat-bubble chat-bubble-ai';
-            div.innerHTML = `
-                <div class="ai-avatar"><i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i></div>
-                <div class="thinking-container">
-                    <div class="hyper-spinner"></div>
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">DX-1 Analyzing...</div>
-                </div>
-            `;
-            chatContainer.appendChild(div);
-            lucide.createIcons({ nodes: [div] });
-            scrollToBottom();
+        async function addMessageToUI(sender, message, attachmentUrl = null) {
+            const messageElement = document.createElement('div');
+
+            if (sender === 'user') {
+                messageElement.className = 'chat-bubble chat-bubble-user';
+                const safeMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                let attachmentHtml = '';
+                if (attachmentUrl) {
+                     attachmentHtml = `<img src="${attachmentUrl}" alt="User attachment" class="w-full h-auto rounded-lg mb-2 max-h-64">`;
+                }
+                const messageHtml = message ? `<p>${safeMessage.replace(/\n/g, '<br>')}</p>` : '';
+                messageElement.innerHTML = `${attachmentHtml}${messageHtml}`;
+                chatContainer.appendChild(messageElement);
+                scrollChatToBottom();
+
+            } else {
+                messageElement.className = 'chat-bubble chat-bubble-ai';
+
+                const iconName = MODEL_DETAILS[selectedModel]?.icon || 'zap';
+                messageElement.innerHTML = `
+                    <div class="ai-avatar">
+                         <i data-lucide="${iconName}" class="w-5 h-5 text-white/80"></i>
+                    </div>
+                    <div class="ai-content"></div>
+                `;
+
+                chatContainer.appendChild(messageElement);
+                lucide.createIcons({
+                    nodes: [messageElement.querySelector('.ai-avatar')],
+                    attrs: {'stroke-width': 2}
+                });
+
+                const contentDiv = messageElement.querySelector('.ai-content');
+                await typeWriterEffect(contentDiv, message);
+            }
         }
 
-        function hideThinking() {
-            const el = document.getElementById('thinking-indicator');
-            if(el) el.remove();
+        // --- Model Switching ---
+        const modelModal = document.getElementById('model-modal');
+        const modelSelectButton = document.getElementById('model-select-button');
+        const modelCardButtons = document.querySelectorAll('.model-card');
+
+        modelSelectButton.addEventListener('click', () => modelModal.classList.remove('hidden'));
+        document.getElementById('modal-overlay').addEventListener('click', () => modelModal.classList.add('hidden'));
+
+        modelCardButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const newModel = btn.dataset.model;
+                selectedModel = newModel;
+
+                modelCardButtons.forEach(b => {
+                    b.classList.remove('active');
+                    b.querySelector('.check-icon').classList.add('hidden');
+                });
+                btn.classList.add('active');
+                btn.querySelector('.check-icon').classList.remove('hidden');
+
+                const details = MODEL_DETAILS[newModel];
+                document.querySelector('#model-select-button').innerHTML = `
+                    <i data-lucide="${details.icon}" class="w-4 h-4"></i>
+                    <span id="model-select-name">${details.name}</span>
+                `;
+                lucide.createIcons({ nodes: [document.querySelector('#model-select-button')] });
+
+                modelModal.classList.add('hidden');
+
+                if (selectedModel === '0c v.2') {
+                    navCanvasToggle.classList.remove('hidden');
+                    canvasOverlay.classList.remove('study-mode');
+                    canvasTitleText.innerText = "DX Canvas";
+                } else if (selectedModel === 'Study') {
+                    navCanvasToggle.classList.remove('hidden');
+                    canvasOverlay.classList.add('study-mode');
+                    canvasTitleText.innerText = "Study Box";
+                    toggleCanvas(true);
+                } else {
+                    navCanvasToggle.classList.add('hidden');
+                    toggleCanvas(false);
+                }
+            });
+        });
+
+        // --- File Upload ---
+        fileUploadButton.addEventListener('click', () => fileUploadInput.click());
+        fileUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                attachedFile = { data: ev.target.result, type: file.type };
+                document.getElementById('attachment-preview-container').innerHTML = `
+                    <div class="flex items-center gap-2 text-white bg-white/10 p-2 rounded">
+                        <i data-lucide="paperclip" class="w-4 h-4"></i>
+                        <span class="text-xs truncate max-w-[100px]">${file.name}</span>
+                        <button id="remove-attachment-btn" class="ml-2 hover:text-red-400">&times;</button>
+                    </div>
+                `;
+                document.getElementById('attachment-preview-container').classList.remove('hidden');
+                document.getElementById('remove-attachment-btn').onclick = clearAttachment;
+                lucide.createIcons();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function clearAttachment() {
+            attachedFile = null;
+            fileUploadInput.value = null;
+            document.getElementById('attachment-preview-container').innerHTML = '';
+            document.getElementById('attachment-preview-container').classList.add('hidden');
         }
 
+        // --- Chat Submission ---
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const msg = messageInput.value.trim();
-            if(!msg) return;
+            const message = messageInput.value.trim();
+            if (!message && !attachedFile) return;
 
-            // Add User Message
-            const userDiv = document.createElement('div');
-            userDiv.className = 'chat-bubble chat-bubble-user';
-            userDiv.innerText = msg;
-            chatContainer.appendChild(userDiv);
-
+            addMessageToUI('user', message, attachedFile?.data);
             messageInput.value = '';
-            showThinking();
+            messageInput.style.height = 'auto';
+
+            // Format for Backend (OpenAI Style)
+            // 1. System Prompt
+            const messages = [
+                { role: "system", content: PROMPTS[selectedModel] }
+            ];
+
+            // 2. Add History
+            chatHistory.forEach(h => {
+                messages.push({ role: h.role, content: h.content });
+            });
+
+            // 3. Add Current Message
+            // Note: Simplistic text-only handling for this version as OpenRouter text models might not accept inline base64 images easily without specific multimodal endpoints.
+            // We append a note about the file if present.
+            let fullUserMessage = message;
+            if (attachedFile) {
+                fullUserMessage += `\n[User attached a file: ${fileUploadInput.files[0]?.name}]`;
+            }
+            if (isWebSearchEnabled) {
+                fullUserMessage += `\n[Please perform a deep search on this topic if needed.]`;
+            }
+
+            messages.push({ role: "user", content: fullUserMessage });
+
+            // UI Loading
+            const loadingId = 'loading-' + Date.now();
+            const loadingEl = document.createElement('div');
+            loadingEl.id = loadingId;
+            loadingEl.className = 'chat-bubble chat-bubble-ai';
+            loadingEl.innerHTML = `
+                <div class="ai-avatar loading-avatar"><i data-lucide="${MODEL_DETAILS[selectedModel].icon}" class="w-5 h-5 text-white/80"></i></div>
+                <div class="ai-content"><div class="thinking-container"><div class="thinking-spinner"></div><span class="thinking-text">${THOUGHTS[selectedModel][0]}</span></div></div>
+            `;
+            chatContainer.appendChild(loadingEl);
+            lucide.createIcons({ nodes: [loadingEl] });
+            scrollChatToBottom();
+
+            isLoading = true;
 
             try {
+                // Call local backend instead of Google API
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: msg })
+                    body: JSON.stringify({
+                        messages: messages,
+                        model: selectedModel
+                    })
                 });
 
                 const data = await response.json();
-                hideThinking();
+                loadingEl.remove();
 
-                const aiDiv = document.createElement('div');
-                aiDiv.className = 'chat-bubble chat-bubble-ai';
-                aiDiv.innerHTML = `
-                    <div class="ai-avatar"><i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i></div>
-                    <div class="ai-content"></div>
-                `;
-                chatContainer.appendChild(aiDiv);
-                lucide.createIcons({ nodes: [aiDiv] });
+                if (!data.reply) {
+                    throw new Error("Invalid Server Response");
+                }
 
-                await typeText(aiDiv.querySelector('.ai-content'), data.reply);
+                const aiText = data.reply;
+
+                // Update history
+                chatHistory.push({ role: 'user', content: fullUserMessage });
+                chatHistory.push({ role: 'assistant', content: aiText });
+
+                // Check for Canvas triggers (HTML generation)
+                const hasHtmlBlock = aiText.includes("<!DOCTYPE html>") || aiText.includes("<html");
+
+                if (selectedModel === 'Study' && hasHtmlBlock) {
+                    addMessageToUI('assistant', "I've generated your study guide in the Study Box. Check the panel on the right!");
+                    updateCanvas(aiText);
+                    toggleCanvas(true);
+                } else if (selectedModel === '0c v.2' && hasHtmlBlock) {
+                     await addMessageToUI('assistant', "Code generated.");
+                     updateCanvas(aiText);
+                } else {
+                    await addMessageToUI('assistant', aiText);
+                }
 
             } catch (err) {
-                hideThinking();
-                const errDiv = document.createElement('div');
-                errDiv.className = 'chat-bubble chat-bubble-ai text-red-400';
-                errDiv.innerText = "Connection Failed. Check Local Server.";
-                chatContainer.appendChild(errDiv);
+                loadingEl.remove();
+                addMessageToUI('assistant', `Error: ${err.message}`);
+            } finally {
+                isLoading = false;
             }
         });
 
-        // Neural Canvas Animation
-        const canvas = document.getElementById('neural-canvas');
-        const ctx = canvas.getContext('2d');
-        let w, h;
-        const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
-        window.addEventListener('resize', resize);
-        resize();
+        // Initialize
+        document.querySelector('[data-model="F2"]').click();
 
-        function animate() {
-            ctx.fillStyle = 'rgba(5, 5, 8, 0.2)';
-            ctx.fillRect(0, 0, w, h);
-            for(let i=0; i<15; i++) {
-                ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-                ctx.beginPath();
-                ctx.arc(Math.random()*w, Math.random()*h, Math.random()*1.5, 0, Math.PI*2);
-                ctx.fill();
-            }
-            requestAnimationFrame(animate);
-        }
-        animate();
     </script>
 </body>
 </html>
