@@ -7,7 +7,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 
 # --- CORS CONFIGURATION ---
-# Enabled to allow the frontend to communicate with the backend on Render
+# Enabled for cross-origin requests on Render
 CORS(app)
 
 # --- CONFIGURATION ---
@@ -27,6 +27,8 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 def get_next_key():
     """Rotates through the API keys round-robin style."""
     global CURRENT_KEY_INDEX
+    if not API_KEYS:
+        return None
     key = API_KEYS[CURRENT_KEY_INDEX]
     CURRENT_KEY_INDEX = (CURRENT_KEY_INDEX + 1) % len(API_KEYS)
     return key
@@ -45,39 +47,16 @@ def chat():
     mode = data.get('mode', 'chat')
     history = data.get('history', [])
 
-    # --- MODE SPECIFIC PROMPTS ---
     system_prompt = "You are DX-1, a helpful AI assistant made by DBNN."
-
     if mode == 'canvas':
-        system_prompt += (
-            " You are in CANVAS mode. If the user asks for code (HTML, CSS, JS, Python), "
-            "provide the complete code inside markdown blocks. "
-            "If asked for a website or UI, provide a SINGLE HTML file containing internal CSS and JS."
-        )
+        system_prompt += " Provide code in markdown blocks. For UI, provide a SINGLE HTML file."
     elif mode == 'study':
-        system_prompt += (
-            " You are in STUDY mode. The user will ask to study a topic. "
-            "You MUST output your response in a strict JSON format to generate interactive slides. "
-            "Do NOT output conversational text outside the JSON. "
-            "Format: "
-            "```json\n"
-            "[\n"
-            "  {\"type\": \"slide\", \"title\": \"Topic Title\", \"content\": \"Explanation point...\"},\n"
-            "  {\"type\": \"quiz\", \"question\": \"Test question?\", \"options\": [\"A\", \"B\", \"C\"], \"answer\": 0}\n"
-            "]\n"
-            "```"
-        )
+        system_prompt += " Output strictly in JSON format for slides and quizzes."
     elif mode == 'deep_research':
-        system_prompt += (
-            " You are in DEEP RESEARCH mode. For every question, break it down into detailed logical steps. "
-            "For math or complex logic, explain 'Step 1', 'Step 2', etc. "
-            "Be verbose, accurate, and provide notes for every calculation."
-        )
+        system_prompt += " Break down logic into Step 1, Step 2, etc."
 
-    # Construct messages for API - Trimming history to avoid token limits
     messages = [{"role": "system", "content": system_prompt}]
-
-    # Clean history to ensure only role and content are sent
+    # Safety check for history formatting
     formatted_history = []
     for h in history:
         if isinstance(h, dict) and 'role' in h and 'content' in h:
@@ -86,12 +65,10 @@ def chat():
     messages.extend(formatted_history[-10:])
     messages.append({"role": "user", "content": user_message})
 
-    # Prepare Headers with Rotated Key
     current_api_key = get_next_key()
     headers = {
         "Authorization": f"Bearer {current_api_key}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://dx1-interface.render.com",
         "X-Title": "DX-1 Ultra"
     }
 
@@ -104,9 +81,8 @@ def chat():
     def generate():
         try:
             response = requests.post(OPENROUTER_URL, headers=headers, json=payload, stream=True, timeout=60)
-
             if response.status_code != 200:
-                yield f"API Error: {response.text}"
+                yield f"API Error: {response.status_code} - {response.text}"
                 return
 
             for line in response.iter_lines():
@@ -116,13 +92,12 @@ def chat():
                         if line == 'data: [DONE]':
                             break
                         try:
-                            json_str = line[6:]
-                            content = json.loads(json_str)
-                            if 'choices' in content and len(content['choices']) > 0:
+                            content = json.loads(line[6:])
+                            if 'choices' in content and content['choices']:
                                 delta = content['choices'][0].get('delta', {})
                                 if 'content' in delta:
                                     yield delta['content']
-                        except Exception:
+                        except (json.JSONDecodeError, KeyError, IndexError):
                             continue
         except Exception as e:
             yield f"Stream Error: {str(e)}"
@@ -131,17 +106,7 @@ def chat():
 
 
 if __name__ == '__main__':
-    if not os.path.exists('templates'):
-        os.makedirs('templates')
-
-    # Use Render's PORT environment variable or default to 5000
+    # Render uses the PORT environment variable
     port = int(os.environ.get("PORT", 5000))
-
-    print("----------------------------------------------------------------")
-    print("DX-1 AI System (DBNN) Initialized")
-    print(f"Loaded {len(API_KEYS)} API Keys for rotation.")
-    print(f"Server starting on port {port}")
-    print("----------------------------------------------------------------")
-
-    # Host 0.0.0.0 is required for Render
-    app.run(host='0.0.0.0', port=port)
+    # host='0.0.0.0' is mandatory for cloud access
+    app.run(host='0.0.0.0', port=port)# 1. Initialize git in your folder
