@@ -13,85 +13,130 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #050505; color: #e2e8f0; overflow: hidden; }
-        #cursor-glow { position: fixed; width: 700px; height: 700px; background: radial-gradient(circle, rgba(59, 130, 246, 0.07) 0%, rgba(99, 102, 241, 0.02) 40%, rgba(0, 0, 0, 0) 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 0; transition: opacity 0.5s ease; }
-        .glass { background: rgba(15, 17, 21, 0.6); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.06); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .msg-anim { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .prose pre { background: #0d1117 !important; border: 1px solid rgba(255,255,255,0.05); }
-        #mode-menu { transform-origin: bottom left; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
-        .menu-hidden { opacity: 0; transform: scale(0.9) translateY(10px); pointer-events: none; }
-        .menu-visible { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+        #cursor-glow { position: fixed; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.02) 50%, rgba(0, 0, 0, 0) 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
+        .glass { background: rgba(15, 17, 21, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+
+        /* Animations */
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .study-card { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .thinking-dot { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        #preview-panel { transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .action-btn { opacity: 0; transition: opacity 0.2s ease; }
+        .glass:hover .action-btn { opacity: 1; }
     </style>
 </head>
-<body class="h-screen flex flex-col relative">
+<body class="h-screen flex flex-col relative overflow-hidden">
     <div id="cursor-glow"></div>
-    <div class="fixed top-6 left-6 z-50 flex items-center gap-3 select-none">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white">DX</div>
-        <div class="flex flex-col">
-            <span class="text-xs font-bold tracking-widest text-white/80 uppercase">Interface</span>
-            <span class="text-[9px] text-blue-500 font-mono tracking-tighter">DBNN CORE v3.5</span>
+
+    <!-- Top Bar -->
+    <div class="fixed top-0 left-0 w-full z-50 p-6 flex justify-between items-center pointer-events-none">
+        <div class="flex items-center gap-3 pointer-events-auto">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">DX</div>
+            <div class="flex flex-col">
+                <span class="text-xs font-bold tracking-widest text-white/90 uppercase">DX-1 System</span>
+                <span id="status-label" class="text-[9px] text-blue-400 font-mono tracking-tighter">CORE v3.5 // ONLINE</span>
+            </div>
         </div>
     </div>
 
     <main class="flex-1 flex overflow-hidden relative z-10">
+        <!-- Chat Area -->
         <div id="chat-container" class="flex-1 flex flex-col relative">
-            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-8 max-w-4xl mx-auto w-full scroll-smooth pb-40 pt-20">
-                <div class="flex gap-4 items-start msg-anim">
-                    <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-blue-400">SYS</div>
-                    <div class="glass border border-white/5 rounded-2xl rounded-tl-none p-5 max-w-[85%] text-gray-300">
-                        <p class="text-sm">DX-1 active. Select a mode and begin.</p>
+            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-8 max-w-4xl mx-auto w-full pt-28 pb-44">
+                <div class="flex gap-4 items-start slideIn">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-bold text-blue-400">SYS</div>
+                    <div class="glass rounded-2xl rounded-tl-none p-5 text-gray-300 text-sm max-w-[80%] relative">
+                        Interface initialized. Select a specialized mode or begin chatting.
                     </div>
                 </div>
             </div>
 
-            <div class="absolute bottom-8 left-0 w-full px-6 z-30">
-                <div class="max-w-3xl mx-auto relative">
-                    <div id="mode-menu" class="absolute bottom-full left-0 mb-3 w-56 glass border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 menu-hidden">
-                        <button onclick="selectMode('chat', 'fa-comment-dots')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 flex items-center gap-3"><i class="fas fa-comment-dots text-blue-400"></i> Chat</button>
-                        <button onclick="selectMode('canvas', 'fa-code')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 flex items-center gap-3"><i class="fas fa-code text-purple-400"></i> Canvas</button>
-                        <button onclick="selectMode('study', 'fa-graduation-cap')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 flex items-center gap-3"><i class="fas fa-graduation-cap text-green-400"></i> Study</button>
+            <!-- Input Controls -->
+            <div class="absolute bottom-8 left-0 w-full px-6 pointer-events-none">
+                <div class="max-w-3xl mx-auto relative pointer-events-auto">
+                    <!-- Mode Selector Popup -->
+                    <div id="mode-menu" class="hidden absolute bottom-full left-0 mb-4 w-64 glass rounded-2xl shadow-2xl p-2 border border-white/10">
+                        <p class="text-[10px] uppercase tracking-widest text-gray-500 px-3 py-2">Select Processor</p>
+                        <button onclick="selectMode('chat', 'fa-comment-dots', 'blue')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-comment-dots text-blue-400"></i> General Chat</button>
+                        <button onclick="selectMode('deep_research', 'fa-brain', 'cyan')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-brain text-cyan-400"></i> Deep Thinking</button>
+                        <button onclick="selectMode('canvas', 'fa-code', 'purple')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-code text-purple-400"></i> Canvas Designer</button>
+                        <button onclick="selectMode('study', 'fa-graduation-cap', 'green')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-graduation-cap text-green-400"></i> Study Navigator</button>
                     </div>
-                    <div class="relative flex items-end glass rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-                        <button onclick="toggleModeMenu()" id="mode-trigger" class="h-14 w-14 flex items-center justify-center text-blue-400 border-r border-white/5"><i class="fas fa-comment-dots text-lg" id="current-mode-icon"></i></button>
-                        <textarea id="user-input" rows="1" class="flex-1 bg-transparent text-gray-200 pl-4 pr-14 py-4 focus:outline-none resize-none placeholder-gray-600 max-h-48 text-sm" placeholder="Initialize command..."></textarea>
-                        <button onclick="sendMessage()" class="absolute right-2 bottom-2 h-10 w-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center"><i class="fas fa-arrow-up text-sm"></i></button>
+
+                    <!-- Main Input Bar -->
+                    <div class="relative flex items-end glass rounded-2xl border border-white/10 shadow-2xl">
+                        <button onclick="toggleModeMenu()" class="h-14 w-14 flex items-center justify-center text-blue-400 transition-colors hover:bg-white/5" id="mode-btn">
+                            <i class="fas fa-comment-dots text-lg" id="current-mode-icon"></i>
+                        </button>
+                        <textarea id="user-input" rows="1" class="flex-1 bg-transparent text-gray-100 pl-2 pr-14 py-4 focus:outline-none resize-none placeholder-gray-600 text-sm" placeholder="Enter command... (Enter to send, Shift+Enter for new line)"></textarea>
+                        <button onclick="sendMessage()" class="absolute right-2 bottom-2 h-10 w-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all flex items-center justify-center shadow-lg shadow-blue-600/20">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="preview-panel" class="w-0 bg-[#0d1117] border-l border-white/5 transition-all duration-500 flex flex-col z-40">
-            <div class="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#050505]">
-                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest" id="preview-title">Output Buffer</span>
-                <button onclick="togglePreview(false)" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+        <!-- Secondary Panel (Canvas/Study) -->
+        <div id="preview-panel" class="w-0 bg-[#080808] border-l border-white/5 overflow-hidden flex flex-col z-40">
+            <div class="h-16 border-b border-white/5 flex items-center justify-between px-6 shrink-0">
+                <div class="flex items-center gap-3">
+                    <span id="preview-icon-container" class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]" id="preview-title">Output Buffer</span>
+                </div>
+                <button onclick="togglePreview(false)" class="w-8 h-8 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
             </div>
-            <div id="preview-content" class="flex-1 overflow-auto bg-[#0d1117]"></div>
+            <div id="preview-content" class="flex-1 overflow-auto p-0 relative bg-[#0d1117]">
+                <!-- Dynamic content goes here -->
+            </div>
         </div>
     </main>
 
     <script>
         let currentMode = 'chat';
-        let conversationHistory = [];
+        let history = [];
         let isGenerating = false;
+        let synthesis = window.speechSynthesis;
 
+        // Mouse glow effect
         document.addEventListener('mousemove', (e) => {
             const glow = document.getElementById('cursor-glow');
             glow.style.left = e.clientX + 'px';
             glow.style.top = e.clientY + 'px';
         });
 
+        // Enter to Send
+        document.getElementById('user-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
         function toggleModeMenu() {
             const menu = document.getElementById('mode-menu');
-            menu.classList.toggle('menu-hidden');
-            menu.classList.toggle('menu-visible');
+            menu.classList.toggle('hidden');
         }
 
-        function selectMode(mode, iconClass) {
+        function selectMode(mode, icon, color) {
             currentMode = mode;
-            document.getElementById('current-mode-icon').className = `fas ${iconClass}`;
+            document.getElementById('current-mode-icon').className = `fas ${icon}`;
+            document.getElementById('mode-btn').style.color = `var(--tw-color-${color}-400)`;
+            document.getElementById('status-label').innerText = `CORE v3.5 // ${mode.toUpperCase()}`;
             toggleModeMenu();
-            if (mode === 'canvas' || mode === 'study') togglePreview(true);
-            else togglePreview(false);
+        }
+
+        function togglePreview(show) {
+            const panel = document.getElementById('preview-panel');
+            panel.style.width = show ? "50%" : "0";
         }
 
         async function sendMessage() {
@@ -99,18 +144,19 @@
             const message = input.value.trim();
             if (!message || isGenerating) return;
 
-            addMessageToUI('user', message);
+            addMessage('user', message);
             input.value = '';
+            input.style.height = 'auto';
             isGenerating = true;
 
-            const aiBubble = addMessageToUI('ai', '...');
+            const aiBubble = addMessage('ai', '<div class="flex gap-1"><span class="thinking-dot">.</span><span class="thinking-dot" style="animation-delay:0.2s">.</span><span class="thinking-dot" style="animation-delay:0.4s">.</span></div>');
             let fullResponse = "";
 
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message, mode: currentMode, history: conversationHistory })
+                    body: JSON.stringify({ message, mode: currentMode, history })
                 });
 
                 const reader = response.body.getReader();
@@ -120,79 +166,147 @@
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    fullResponse += decoder.decode(value);
+                    const chunk = decoder.decode(value);
+                    fullResponse += chunk;
+
                     if (currentMode !== 'study') {
                         aiBubble.innerHTML = marked.parse(fullResponse);
                         hljs.highlightAll();
-                    } else {
-                        aiBubble.innerHTML = "<p class='text-blue-400 animate-pulse'>Compiling Study Module...</p>";
                     }
                 }
 
-                conversationHistory.push({ role: "user", content: message }, { role: "assistant", content: fullResponse });
+                history.push({ role: "user", content: message }, { role: "assistant", content: fullResponse });
 
-                if (currentMode === 'canvas') extractAndRenderHTML(fullResponse);
-                if (currentMode === 'study') renderStudyMode(fullResponse, aiBubble);
+                // Post-processing based on mode
+                if (currentMode === 'canvas') handleCanvas(fullResponse);
+                if (currentMode === 'study') handleStudy(fullResponse, aiBubble);
+                if (currentMode === 'deep_research') aiBubble.innerHTML = marked.parse(fullResponse);
 
             } catch (error) {
-                aiBubble.innerHTML = `Error: ${error.message}`;
+                aiBubble.innerHTML = `<span class="text-red-400">Connection Interrupted: ${error.message}</span>`;
             } finally {
                 isGenerating = false;
             }
         }
 
-        function addMessageToUI(role, content) {
+        function addMessage(role, content) {
             const container = document.getElementById('messages');
-            const wrapper = document.createElement('div');
-            wrapper.className = `flex gap-4 msg-anim ${role === 'user' ? 'flex-row-reverse' : ''}`;
-            const bubble = document.createElement('div');
-            bubble.className = `p-4 max-w-[85%] rounded-2xl prose prose-invert text-sm ${role === 'user' ? 'bg-blue-600 text-white' : 'glass text-gray-200'}`;
-            bubble.innerHTML = content;
-            wrapper.appendChild(bubble);
-            container.appendChild(wrapper);
+            const div = document.createElement('div');
+            div.className = `flex gap-4 ${role === 'user' ? 'flex-row-reverse' : ''} slideIn group`;
+
+            const icon = role === 'user' ? 'USER' : 'DX-1';
+            const iconColor = role === 'user' ? 'bg-white/5' : 'bg-blue-600/10 text-blue-400';
+
+            const actionsHtml = role === 'ai' ? `
+                <div class="absolute -bottom-6 right-2 flex gap-2 action-btn">
+                    <button onclick="copyToClipboard(this)" class="text-[10px] text-gray-500 hover:text-blue-400 transition-colors"><i class="fas fa-copy"></i> Copy</button>
+                    <button onclick="speakText(this)" class="text-[10px] text-gray-500 hover:text-green-400 transition-colors"><i class="fas fa-volume-up"></i> Listen</button>
+                </div>
+            ` : '';
+
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg ${iconColor} border border-white/5 flex items-center justify-center text-[9px] font-bold shrink-0">${icon}</div>
+                <div class="glass p-4 rounded-2xl ${role === 'user' ? 'rounded-tr-none bg-blue-600/10' : 'rounded-tl-none'} text-sm text-gray-200 prose prose-invert max-w-[85%] relative">
+                    <div class="message-content">${content}</div>
+                    ${actionsHtml}
+                </div>
+            `;
+            container.appendChild(div);
             container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-            return bubble;
+            return div.querySelector('.message-content');
         }
 
-        function togglePreview(show) {
-            const p = document.getElementById('preview-panel');
-            p.style.width = show ? "45%" : "0";
+        function copyToClipboard(btn) {
+            const content = btn.closest('.glass').querySelector('.message-content').innerText;
+            const el = document.createElement('textarea');
+            el.value = content;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+            setTimeout(() => btn.innerHTML = original, 2000);
         }
 
-        function extractAndRenderHTML(text) {
-            const match = text.match(/```html([\s\S]*?)```/) || text.match(/<html>([\s\S]*?)<\/html>/);
-            if (match) {
-                const previewContainer = document.getElementById('preview-content');
-                previewContainer.innerHTML = `<iframe class="w-full h-full bg-white"></iframe>`;
-                const doc = previewContainer.querySelector('iframe').contentWindow.document;
-                doc.open(); doc.write(match[1] || match[0]); doc.close();
+        function speakText(btn) {
+            if (synthesis.speaking) {
+                synthesis.cancel();
+                btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+                return;
+            }
+            const content = btn.closest('.glass').querySelector('.message-content').innerText;
+            const utterance = new SpeechSynthesisUtterance(content);
+            utterance.onend = () => {
+                btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+            };
+            btn.innerHTML = '<i class="fas fa-stop"></i> Stop';
+            synthesis.speak(utterance);
+        }
+
+        function handleCanvas(text) {
+            const codeMatch = text.match(/```html([\s\S]*?)```/);
+            if (codeMatch) {
+                const preview = document.getElementById('preview-content');
+                preview.innerHTML = `<iframe id="canvas-frame" class="w-full h-full bg-white"></iframe>`;
+                const iframe = document.getElementById('canvas-frame');
+                const doc = iframe.contentWindow.document;
+                doc.open(); doc.write(codeMatch[1]); doc.close();
+                document.getElementById('preview-title').innerText = "Canvas Preview";
                 togglePreview(true);
             }
         }
 
-        function renderStudyMode(text, msgDiv) {
-            const jsonMatch = text.match(/```json([\s\S]*?)```/) || text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        function handleStudy(text, bubble) {
+            const jsonMatch = text.match(/```json([\s\S]*?)```/);
             if (jsonMatch) {
                 try {
-                    const data = JSON.parse(jsonMatch[1] || jsonMatch[0]);
-                    msgDiv.innerHTML = "Study Module Loaded.";
+                    const data = JSON.parse(jsonMatch[1]);
+                    bubble.innerHTML = "Study module loaded into visualizer.";
                     const preview = document.getElementById('preview-content');
-                    preview.innerHTML = `<div class="p-8 space-y-6"></div>`;
-                    data.forEach(item => {
+                    preview.innerHTML = `<div class="p-8 space-y-8 max-w-2xl mx-auto"></div>`;
+
+                    data.forEach((item, index) => {
                         const card = document.createElement('div');
-                        card.className = "bg-[#161b22] p-6 rounded-2xl border border-white/5 shadow-xl";
+                        card.className = "study-card bg-[#111] p-6 rounded-2xl border border-white/5 shadow-2xl";
+                        card.style.animationDelay = `${index * 0.1}s`;
+
                         if (item.type === 'slide') {
-                            card.innerHTML = `<h3 class="text-blue-400 font-bold mb-2">${item.title}</h3><p class="text-gray-400 text-sm">${item.content}</p>`;
-                        } else {
-                            card.innerHTML = `<h3 class="text-white text-sm mb-4">${item.question}</h3><div class="space-y-2">
-                                ${item.options.map((o, idx) => `<button onclick="this.style.background='${idx===item.answer?'#10b981':'#ef4444'}'" class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/5 text-xs">${o}</button>`).join('')}
-                            </div>`;
+                            card.innerHTML = `
+                                <div class="text-[10px] text-green-500 font-mono mb-2">TOPIC // 0${index+1}</div>
+                                <h2 class="text-xl font-bold text-white mb-4">${item.title}</h2>
+                                <p class="text-gray-400 leading-relaxed">${item.content}</p>
+                            `;
+                        } else if (item.type === 'quiz') {
+                            card.innerHTML = `
+                                <div class="text-[10px] text-yellow-500 font-mono mb-2">VALIDATION QUIZ</div>
+                                <h2 class="text-lg font-medium text-white mb-6">${item.question}</h2>
+                                <div class="grid grid-cols-1 gap-3">
+                                    ${item.options.map((opt, i) => `
+                                        <button onclick="checkAnswer(this, ${i === item.answer})" class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-sm">
+                                            ${opt}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            `;
                         }
                         preview.firstChild.appendChild(card);
                     });
+                    document.getElementById('preview-title').innerText = "Study Navigator";
                     togglePreview(true);
-                } catch(e) { msgDiv.innerHTML = marked.parse(text); }
-            } else msgDiv.innerHTML = marked.parse(text);
+                } catch (e) { bubble.innerHTML = marked.parse(text); }
+            } else { bubble.innerHTML = marked.parse(text); }
+        }
+
+        function checkAnswer(btn, isCorrect) {
+            btn.style.borderColor = isCorrect ? '#10b981' : '#ef4444';
+            btn.style.background = isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+            if (isCorrect) {
+                btn.innerHTML += ' <i class="fas fa-check-circle ml-2"></i>';
+            } else {
+                btn.innerHTML += ' <i class="fas fa-times-circle ml-2"></i>';
+            }
         }
     </script>
 </body>
