@@ -1,1211 +1,382 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DBNN DX | Live Interface</title>
-    <meta name="description" content="DBNN DX - The next evolution of conversational AI, live.">
-
-    <!-- Scripts -->
+    <title>DX-1 | DBNN ULTRA</title>
+    <!-- Tailwind CSS for Premium UI -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Markdown & Syntax Highlighting -->
+    <!-- Marked for Markdown Parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- Highlight.js for Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Premium Styles -->
     <style>
-        :root {
-            --brand-primary: #6366f1; /* Indigo */
-            --brand-secondary: #a855f7; /* Purple */
-            --brand-accent: #ec4899; /* Pink */
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #030014;
-            color: #e2e8f0;
-            overflow-x: hidden;
-        }
-        .bg-grid-pattern {
-            background-size: 50px 50px;
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            mask-image: linear-gradient(to bottom, black 20%, white 90%, black 100%);
-        }
-        .glass-nav {
-             background: rgba(3, 0, 20, 0.7);
-             backdrop-filter: blur(16px);
-             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .glow {
-            position: absolute;
-            width: 800px;
-            height: 800px;
-            background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, rgba(168,85,247,0.05) 30%, rgba(0,0,0,0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            mix-blend-mode: screen;
-        }
-
-        /* --- Textarea Input Styles --- */
-        .form-input-wrapper {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.2s ease;
-        }
-        .form-input-wrapper:focus-within {
-            border-color: var(--brand-primary);
-            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5);
-        }
-        .form-input {
-            color: #fff;
-            background-color: transparent;
-            appearance: none;
-            -webkit-appearance: none;
-            resize: none;
-            overflow-y: hidden;
-            line-height: 1.6;
-        }
-        .form-input:focus {
-            outline: none;
-            box-shadow: none;
-            border-color: transparent;
-        }
-        .form-input::placeholder {
-             color: #6b7280;
-        }
-
-        /* --- Chat UI Specific Styles --- */
-        .chat-container {
-            overflow-y: auto;
-        }
-
-        .chat-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        .chat-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .chat-container::-webkit-scrollbar-thumb {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-        }
-
-        .chat-bubble {
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-
-        .chat-bubble-user {
-            padding: 12px 18px;
-            border-radius: 20px;
-            background-color: var(--brand-primary);
-            color: white;
-            border-bottom-right-radius: 4px;
-            align-self: flex-end;
-            opacity: 0;
-            transform: translateY(10px);
-            animation: pop-in 0.3s ease forwards;
-        }
-
-        .chat-bubble-user img,
-        .chat-bubble-user video {
-            width: auto;
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 12px;
-            margin-bottom: 8px;
-        }
-
-        @keyframes pop-in {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .chat-bubble-ai {
-            color: #e2e8f0;
-            align-self: flex-start;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            width: 100%;
-            max-width: 100%;
-            position: relative;
-        }
-
-        .ai-avatar {
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 4px;
-        }
-
-        .ai-content {
-            min-width: 0;
-            width: 100%;
-            line-height: 1.6;
-        }
-
-        .ai-content p {
-            margin-bottom: 0.75rem;
-            white-space: pre-wrap;
-        }
-        .ai-content ul, .ai-content ol {
-            margin-bottom: 0.75rem;
-            padding-left: 1.5rem;
-        }
-        .ai-content ul { list-style-type: disc; }
-        .ai-content ol { list-style-type: decimal; }
-
-        .ai-content code {
-            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        /* Inline Code */
-        .ai-content :not(pre) > code {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            padding: 2px 6px;
-            color: #f0f0f0;
-        }
-
-        /* Block Code */
-        .code-block-wrapper {
-            position: relative;
-            margin: 12px 0;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background-color: #282c34; /* Atom One Dark bg */
-        }
-
-        .code-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .code-lang {
-            font-size: 11px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .code-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .action-btn {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            background: transparent;
-            border: none;
-            color: #94a3b8;
-            font-size: 12px;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .action-btn:hover {
-            color: #fff;
-        }
-
-        .ai-content pre {
-            margin: 0;
-            padding: 16px;
-            overflow-x: auto;
-            background: transparent;
-            white-space: pre !important;
-        }
-
-        .ai-content pre code.hljs {
-            padding: 0;
-            background: transparent;
-            white-space: pre !important;
-        }
-
-        /* Cursor effect */
-        .typing-cursor::after {
-            content: '▋';
-            color: var(--brand-primary);
-            animation: blink 1s step-start infinite;
-            margin-left: 2px;
-        }
-        @keyframes blink { 50% { opacity: 0; } }
-
-        /* --- Thinking Animation Styles --- */
-        .thinking-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            color: #94a3b8; /* slate-400 */
-            padding: 8px 0;
-            opacity: 0;
-            animation: fade-in-thinking 0.3s ease forwards;
-        }
-        @keyframes fade-in-thinking {
-            to { opacity: 1; }
-        }
-
-        .thinking-spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--brand-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .thinking-text {
-            background: linear-gradient(to right, #94a3b8, #64748b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 500;
-        }
-
-        @keyframes pulse-avatar {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(0.95); }
-        }
-        .loading-avatar {
-            animation: pulse-avatar 1.5s ease-in-out infinite;
-        }
-
-        #model-select-button {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        #model-select-button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-
-        /* Updated Input Buttons (File & Web) */
-        #file-upload-button, #web-search-button {
-            background-color: transparent;
-            border: 1px solid transparent;
-            color: #94a3b8;
-            padding: 8px;
-            border-radius: 50%;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 4px; /* Align with text area bottom */
-        }
-        #file-upload-button:hover, #web-search-button:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-        #web-search-button.active {
-            background-color: rgba(99, 102, 241, 0.15);
-            color: #818cf8;
-        }
-
-        #attachment-preview-container {
-            position: relative;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 8px 8px 0 8px;
-        }
-        #attachment-preview-container img,
-        #attachment-preview-container video {
-            height: 40px;
-            width: 40px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-        #attachment-preview-container .file-info {
-            font-size: 12px;
+            background-color: #050505;
             color: #e2e8f0;
             overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            min-width: 0;
-        }
-        #remove-attachment-btn {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 20px;
-            height: 20px;
-            background-color: #334155;
-            color: #e2e8f0;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            cursor: pointer;
-            border: 2px solid #030014;
-            line-height: 1;
-            z-index: 10;
         }
 
-        /* --- Model Modal Styles --- */
-        #model-modal {
-            transition: opacity 0.2s ease;
-        }
-        #modal-content {
-            background-color: #0F0D21;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 600px;
-            animation: modal-pop-in 0.3s ease;
-        }
-
-        @keyframes modal-pop-in {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        .model-card {
-            background-color: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 16px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-        .model-card:hover {
-            background-color: rgba(255, 255, 255, 0.07);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-        .model-card.active {
-            background-color: rgba(99, 102, 241, 0.15);
-            border-color: var(--brand-primary);
-        }
-        .model-card-icon {
-            flex-shrink: 0;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .model-card-icon-f1 { background-color: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
-        .model-card-icon-0c { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
-        .model-card-icon-d1 { background-color: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
-        .model-card-icon-v1 { background-color: rgba(236, 72, 153, 0.2); color: #fbcfe8; }
-        .model-card-icon-study { background-color: rgba(52, 211, 153, 0.2); color: #6ee7b7; }
-
-        .model-card .check-icon {
-            color: var(--brand-primary);
-        }
-
-        /* --- Canvas / Artifact Styles --- */
-        #canvas-overlay {
+        /* Mouse Glow Effect */
+        #cursor-glow {
             position: fixed;
-            top: 0; right: 0; bottom: 0;
-            width: 50%;
-            background: #0F0D21;
-            border-left: 1px solid rgba(255,255,255,0.1);
-            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
-            z-index: 60;
-            transform: translateX(100%);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            display: flex;
-            flex-direction: column;
-        }
-        #canvas-overlay.open {
-            transform: translateX(0);
-        }
-        #canvas-overlay.canvas-expanded {
-            width: 100% !important;
-        }
-        #canvas-overlay.study-mode .canvas-editor-container {
-            display: none;
-        }
-        #canvas-overlay.study-mode .canvas-preview-container {
-            height: 100%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.07) 0%, rgba(99, 102, 241, 0.02) 40%, rgba(0, 0, 0, 0) 70%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.5s ease;
         }
 
-        .canvas-header {
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            background: rgba(3, 0, 20, 0.5);
-        }
-        .canvas-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #e2e8f0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .canvas-controls {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .canvas-control-btn {
-            background: transparent;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            padding: 6px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-        .canvas-control-btn:hover { color: #fff; background-color: rgba(255,255,255,0.1); }
-
-        .canvas-body {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .canvas-split {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-        .canvas-editor-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            position: relative;
-        }
-        .canvas-preview-container {
-            flex: 1;
-            background: #fff;
-            position: relative;
-        }
-        #canvas-editor {
-            width: 100%;
-            height: 100%;
-            background: #1e1e1e;
-            color: #d4d4d4;
-            border: none;
-            padding: 16px;
-            font-family: 'Menlo', 'Monaco', monospace;
-            font-size: 13px;
-            resize: none;
-            outline: none;
-        }
-        #canvas-preview-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .canvas-toolbar {
-            padding: 8px 16px;
-            background: #1e1e1e;
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .run-btn {
-            background: var(--brand-primary);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .run-btn:hover {
-            filter: brightness(1.1);
+        /* Glass Utility */
+        .glass {
+            background: rgba(15, 17, 21, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-anim { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* Live Cursor Effect */
+        .cursor-active::after {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 1.1em;
+            background: #3b82f6;
+            margin-left: 2px;
+            vertical-align: middle;
+            animation: blink 0.4s infinite alternate;
+        }
+        @keyframes blink { from { opacity: 1; } to { opacity: 0; } }
+
+        /* Markdown Overrides */
+        .prose { max-width: none; }
+        .prose pre { background: #0d1117 !important; border: 1px solid rgba(255,255,255,0.05); padding: 1rem !important; border-radius: 12px; }
+        .prose code { color: #93c5fd; font-family: 'JetBrains Mono', monospace; }
+
+        /* Dropdown Popup Animation */
+        #mode-menu {
+            transform-origin: bottom left;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .menu-hidden { opacity: 0; transform: scale(0.9) translateY(10px); pointer-events: none; }
+        .menu-visible { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="antialiased">
+<body class="h-screen flex flex-col relative selection:bg-blue-500/30">
 
-    <!-- Navigation -->
-    <nav class="fixed w-full z-50 glass-nav">
-        <div class="max-w-7xl mx-auto px-6 h-12 flex justify-between items-center">
-            <div class="flex items-center space-x-3 group cursor-pointer">
-                <div class="w-8 h-8 relative">
-                    <div class="absolute inset-0 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-lg rotate-6 group-hover:rotate-12 transition-transform opacity-70 blur-md"></div>
-                     <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center border border-white/20">
-                        <span class="text-white font-black text-xs tracking-tighter">DB</span>
-                    </div>
-                </div>
-                <span class="text-xl font-bold tracking-tight text-white">DX</span>
-            </div>
+    <!-- Ambient Background -->
+    <div id="cursor-glow"></div>
+    <div class="fixed top-0 left-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none z-0"></div>
 
-            <button id="nav-canvas-toggle" class="hidden text-sm text-gray-400 hover:text-white flex items-center gap-2 border border-white/10 px-3 py-1 rounded-full transition-colors">
-                <i data-lucide="layout" class="w-4 h-4"></i> Open Canvas
-            </button>
+    <!-- Header Logo -->
+    <div class="fixed top-6 left-6 z-50 flex items-center gap-3 select-none">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-2xl shadow-blue-500/20">DX</div>
+        <div class="flex flex-col">
+            <span class="text-xs font-bold tracking-widest text-white/80 uppercase">Neural Link</span>
+            <span class="text-[9px] text-blue-500 font-mono tracking-tighter">ULTRA_SYNC v4.8</span>
         </div>
-    </nav>
+    </div>
 
-    <!-- Main Chat Section -->
-    <section class="relative h-screen flex flex-col pt-12 overflow-hidden transition-all duration-300" id="main-section">
-        <div class="glow top-[-30%] left-[-20%] opacity-60"></div>
-        <div class="glow bottom-[-30%] right-[-20%] !bg-[radial-gradient(circle,rgba(236,72,153,0.12)_0%,rgba(0,0,0,0)_70%)] opacity-60"></div>
-        <div class="absolute inset-0 bg-grid-pattern z-0"></div>
+    <main class="flex-1 flex overflow-hidden relative z-10">
 
-        <div class="relative z-10 max-w-6xl w-full mx-auto px-6 flex-grow flex flex-col overflow-hidden">
-
-            <!-- Chat Messages Container -->
-            <div id="chat-container" class="chat-container flex-grow py-8 space-y-6 overflow-y-auto">
-                <div class="chat-bubble chat-bubble-ai">
-                    <div class="ai-avatar">
-                         <i data-lucide="zap" class="w-5 h-5 text-white/80"></i>
-                    </div>
-                    <div class="ai-content animate-pop">
-                        <p>Welcome to the DBNN DX Live Interface. I am online and operational, created by DBNN.</p>
-                        <p>Select <strong>F2</strong> for speed, <strong>0c v.2</strong> for coding, or <strong>Study</strong> to upload notes and get a comprehensive study guide.</p>
+        <!-- Chat Area -->
+        <div id="chat-container" class="flex-1 flex flex-col transition-all duration-300 relative">
+            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-8 max-w-4xl mx-auto w-full z-10 scroll-smooth pb-40 pt-20">
+                <!-- Welcome -->
+                <div class="flex gap-4 items-start msg-anim">
+                    <div class="w-8 h-8 rounded-lg flex-shrink-0 bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-blue-400">SYS</div>
+                    <div class="glass border border-white/5 rounded-2xl rounded-tl-none p-5 max-w-[85%] text-gray-400 italic text-sm shadow-xl">
+                        Neural interface initialized. All systems nominal.
                     </div>
                 </div>
             </div>
 
             <!-- Input Area -->
-            <div class="sticky bottom-0 z-10 pt-4 pb-8 bg-gradient-to-t from-[#030014] via-[#030014] to-transparent flex-shrink-0">
-                <form id="chat-form" class="flex items-end space-x-4">
+            <div class="absolute bottom-8 left-0 w-full px-6 z-30">
+                <div class="max-w-3xl mx-auto relative">
 
-                    <!-- Main Input Wrapper -->
-                    <div class="form-input-wrapper w-full flex flex-col rounded-2xl">
-
-                        <!-- Attachment Preview -->
-                        <div id="attachment-preview-container" class="hidden"></div>
-
-                        <!-- Input Row -->
-                        <div class="flex items-end space-x-2 px-3 pb-2">
-
-                            <!-- File Upload Button (Plus Icon) -->
-                            <input type="file" id="file-upload-input" accept="image/*,video/*" class="hidden">
-                            <button type="button" id="file-upload-button" class="flex-shrink-0" title="Attach file">
-                                <i data-lucide="plus" class="w-5 h-5"></i>
-                            </button>
-
-                            <textarea id="message-input" placeholder="Message DX (Shift+Enter for new line)..." class="form-input flex-grow pl-2 py-3.5 text-base" rows="1"></textarea>
-
-                            <!-- Web Search Button (Cosmetic Only for this version) -->
-                            <button type="button" id="web-search-button" class="flex-shrink-0" title="Web Search (Simulated)">
-                                <i data-lucide="globe" class="w-5 h-5"></i>
-                            </button>
-
-                            <!-- Model Select Button -->
-                            <div class="flex items-center mb-1.5">
-                                <button type="button" id="model-select-button" title="Change model">
-                                    <i data-lucide="zap" class="w-4 h-4"></i>
-                                    <span id="model-select-name">F2</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Send Button -->
-                    <button type="submit" id="send-button" class="bg-white text-black p-4 rounded-full text-sm font-bold transition-all hover:scale-110 hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.6)] flex-shrink-0">
-                        <i data-lucide="send" class="w-6 h-6"></i>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <!-- Canvas Sidebar (0c Model & Study Mode) -->
-    <div id="canvas-overlay">
-        <div class="canvas-header">
-            <div class="canvas-title">
-                <i data-lucide="layout" class="w-4 h-4 text-purple-400"></i>
-                <span id="canvas-title-text">DX Canvas</span> <span class="text-xs text-gray-500 ml-2 font-normal">Live Environment</span>
-            </div>
-            <div class="canvas-controls">
-                <button class="canvas-control-btn" id="download-canvas-btn" title="Download as HTML">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                </button>
-                <button class="canvas-control-btn" id="expand-canvas-btn" title="Maximize">
-                    <i data-lucide="maximize-2" class="w-4 h-4"></i>
-                </button>
-                <button class="canvas-control-btn canvas-close" id="close-canvas-btn" title="Close">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-        <div class="canvas-body">
-            <div class="canvas-split">
-                <!-- Editor Section -->
-                <div class="canvas-editor-container">
-                    <div class="canvas-toolbar">
-                        <span class="text-xs text-gray-500 flex items-center">Editable</span>
-                        <button id="run-code-btn" class="run-btn">
-                            <i data-lucide="play" class="w-3 h-3"></i> Run
+                    <!-- Mode Selector -->
+                    <div id="mode-menu" class="absolute bottom-full left-0 mb-3 w-56 glass border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 menu-hidden">
+                        <div class="text-[10px] font-bold text-gray-500 uppercase px-3 py-2 tracking-widest">Capabilities</div>
+                        <button onclick="selectMode('chat', 'fa-comment-dots')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 hover:text-white transition-all flex items-center gap-3 group">
+                            <i class="fas fa-comment-dots text-blue-400 w-5"></i> Chat Mode
+                        </button>
+                        <button onclick="selectMode('canvas', 'fa-code')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 hover:text-white transition-all flex items-center gap-3 group">
+                            <i class="fas fa-code text-purple-400 w-5"></i> Canvas Mode
+                        </button>
+                        <button onclick="selectMode('study', 'fa-graduation-cap')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 hover:text-white transition-all flex items-center gap-3 group">
+                            <i class="fas fa-graduation-cap text-green-400 w-5"></i> Study Mode
+                        </button>
+                        <button onclick="selectMode('deep_research', 'fa-brain')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm text-gray-300 hover:text-white transition-all flex items-center gap-3 group">
+                            <i class="fas fa-brain text-orange-400 w-5"></i> Deep Research
                         </button>
                     </div>
-                    <textarea id="canvas-editor" spellcheck="false"></textarea>
-                </div>
-                <!-- Preview Section -->
-                <div class="canvas-preview-container">
-                     <iframe id="canvas-preview-frame"></iframe>
+
+                    <!-- Input Bar -->
+                    <div class="relative flex items-end glass rounded-2xl border border-white/10 shadow-2xl overflow-hidden group focus-within:border-blue-500/30 transition-all">
+                        <button onclick="toggleModeMenu()" id="mode-trigger" class="h-14 w-14 flex items-center justify-center text-blue-400 hover:text-white transition-colors border-r border-white/5 group-hover:bg-white/5">
+                            <i class="fas fa-comment-dots text-lg" id="current-mode-icon"></i>
+                        </button>
+
+                        <textarea id="user-input" rows="1" class="flex-1 bg-transparent text-gray-200 pl-4 pr-14 py-4 focus:outline-none resize-none placeholder-gray-600 max-h-48 leading-relaxed text-sm" placeholder="Initialize command..."></textarea>
+
+                        <button onclick="sendMessage()" class="absolute right-2 bottom-2 h-10 w-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-lg active:scale-90 flex items-center justify-center">
+                            <i class="fas fa-arrow-up text-sm"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Model Select Modal -->
-    <div id="model-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
-        <div id="modal-overlay" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        <div id="modal-content" class="relative z-10 p-6">
-            <h3 class="text-xl font-bold text-white mb-6">Select a Model</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                <div class="model-card active" data-model="F2">
-                    <div class="model-card-icon model-card-icon-f1"><i data-lucide="zap" class="w-6 h-6"></i></div>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-white">F2 (Fast)</h4>
-                        <p class="text-sm text-gray-400">Fastest model, web-connected.</p>
-                    </div>
-                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5"></i>
+        <!-- Preview Panel -->
+        <div id="preview-panel" class="w-0 bg-[#0d1117] border-l border-white/5 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col z-40">
+            <div class="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#050505]">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Output Buffer</span>
                 </div>
-
-                <div class="model-card" data-model="0c v.2">
-                    <div class="model-card-icon model-card-icon-0c"><i data-lucide="terminal-square" class="w-6 h-6"></i></div>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-white">0c v.2 (Code)</h4>
-                        <p class="text-sm text-gray-400">Coding engine with Live Canvas.</p>
-                    </div>
-                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
-                </div>
-
-                <div class="model-card" data-model="D-2">
-                    <div class="model-card-icon model-card-icon-d1"><i data-lucide="brain-circuit" class="w-6 h-6"></i></div>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-white">D-2 (Deep)</h4>
-                        <p class="text-sm text-gray-400">Deep reasoning & logic.</p>
-                    </div>
-                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
-                </div>
-
-                <!-- Study Mode -->
-                <div class="model-card" data-model="Study">
-                    <div class="model-card-icon model-card-icon-study"><i data-lucide="book-open" class="w-6 h-6"></i></div>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-white">Study Mode</h4>
-                        <p class="text-sm text-gray-400">Upload notes, get study guides.</p>
-                    </div>
-                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
-                </div>
-
-                <div class="model-card" data-model="V-1">
-                    <div class="model-card-icon model-card-icon-v1"><i data-lucide="eye" class="w-6 h-6"></i></div>
-                    <div class="flex-grow">
-                        <h4 class="font-bold text-white">V-1 (Vision)</h4>
-                        <p class="text-sm text-gray-400">Multimodal analysis.</p>
-                    </div>
-                    <i data-lucide="check" class="check-icon ml-auto w-5 h-5 hidden"></i>
-                </div>
-
+                <button onclick="togglePreview(false)" class="text-gray-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
             </div>
+            <div id="preview-content" class="flex-1 overflow-auto relative bg-[#0d1117]"></div>
         </div>
-    </div>
 
-    <!-- Main Logic -->
-    <script type="module">
-        lucide.createIcons();
+    </main>
 
-        // --- System Prompts (Maintained for logic) ---
-        const PROMPTS = {
-            'F2': "You are DX F2. You are optimized for EXTREME SPEED. Provide extremely concise, precise answers. Use markdown.",
-            '0c v.2': "You are DX 0c v.2, a dedicated CODING ENGINE. \n\nPROTOCOL:\n1. If this is a NEW complex request, first OUTLINE a brief architectural plan (bullet points). Ask the user to type 'yes' to proceed.\n2. IF the user says 'yes' or 'confirm' or clearly approves, THEN output the full code IMMEDIATELY in a single markdown block (e.g. ```html ... ```).\n3. If it is a simple fix or small code snippet, just output it immediately.",
-            'D-2': "You are DX D-2. You are a DEEP REASONING engine. Provide comprehensive, deep, philosophical, and thoroughly researched answers. If asked about hacking, explain the security implications safely.",
-            'V-1': "You are DX V-1, a vision-capable assistant. Analyze the input and answer questions.",
-            'Study': "You are DX Study Assistant. \nPROTOCOL:\n1. Analyze the input/notes. First, PROPOSE a structure for the Study Guide (e.g., 'I will create a guide with: Summary, Key Terms...'). Ask 'Type yes to generate'.\n2. IF the user says 'yes', generate a COMPLETE HTML DOCUMENT (no markdown blocks, just raw html) that acts as the 'Study Guide'.\nCONTENT MUST INCLUDE: \n- A clear Title. \n- 'Simplified Explanation'. \n- 'Key Takeaways'. \n- 'Live Translation'. \n- Use TailwindCSS."
-        };
+    <script>
+        let currentMode = 'chat';
+        let conversationHistory = [];
+        let isGenerating = false;
 
-        const THOUGHTS = {
-            'F2': ["Analyzing...", "Checking context...", "Finalizing..."],
-            '0c v.2': ["Analyzing requirements...", "Drafting architecture...", "Coding...", "Previewing..."],
-            'D-2': ["Deep searching...", "Synthesizing context...", "Reasoning...", "Structuring..."],
-            'V-1': ["Scanning visual data...", "Identifying elements...", "Generating description..."],
-            'Study': ["Reading notes...", "Simplifying concepts...", "Structuring guide...", "Translating terms..."]
-        };
-
-        const MODEL_DETAILS = {
-            'F2': { name: 'F2', icon: 'zap' },
-            '0c v.2': { name: '0c v.2', icon: 'terminal-square' },
-            'D-2': { name: 'D-2', icon: 'brain-circuit' },
-            'V-1': { name: 'V-1', icon: 'eye' },
-            'Study': { name: 'Study Mode', icon: 'book-open' }
-        };
-
-        // --- DOM Elements ---
-        const chatContainer = document.getElementById('chat-container');
-        const chatForm = document.getElementById('chat-form');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-        const fileUploadButton = document.getElementById('file-upload-button');
-        const fileUploadInput = document.getElementById('file-upload-input');
-        const webSearchButton = document.getElementById('web-search-button');
-
-        // Canvas Elements
-        const canvasOverlay = document.getElementById('canvas-overlay');
-        const canvasEditor = document.getElementById('canvas-editor');
-        const canvasPreviewFrame = document.getElementById('canvas-preview-frame');
-        const closeCanvasBtn = document.getElementById('close-canvas-btn');
-        const expandCanvasBtn = document.getElementById('expand-canvas-btn');
-        const downloadCanvasBtn = document.getElementById('download-canvas-btn');
-        const runCodeBtn = document.getElementById('run-code-btn');
-        const navCanvasToggle = document.getElementById('nav-canvas-toggle');
-        const mainSection = document.getElementById('main-section');
-        const canvasTitleText = document.getElementById('canvas-title-text');
-
-        // State
-        let selectedModel = 'F2';
-        let chatHistory = [];
-        let isLoading = false;
-        let attachedFile = null;
-        let isWebSearchEnabled = false;
-
-        marked.setOptions({
-            highlight: function(code, lang) {
-                if (lang && hljs.getLanguage(lang)) {
-                    return hljs.highlight(code, { language: lang }).value;
-                }
-                return hljs.highlightAuto(code).value;
-            },
-            breaks: true
-        });
-
-        // --- UI Logic ---
-        function scrollChatToBottom() {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // Enter key to send
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
-            }
-        });
-
-        // Web Search Toggle
-        webSearchButton.addEventListener('click', () => {
-            isWebSearchEnabled = !isWebSearchEnabled;
-            if (isWebSearchEnabled) {
-                webSearchButton.classList.add('active');
-            } else {
-                webSearchButton.classList.remove('active');
-            }
-        });
-
-        // Canvas Logic
-        function toggleCanvas(show) {
-            if (show) {
-                canvasOverlay.classList.add('open');
-                mainSection.style.width = '50%';
-                navCanvasToggle.classList.remove('hidden');
-            } else {
-                canvasOverlay.classList.remove('open');
-                mainSection.style.width = '100%';
-            }
-        }
-
-        closeCanvasBtn.addEventListener('click', () => {
-            canvasOverlay.classList.remove('canvas-expanded');
-            expandCanvasBtn.innerHTML = `<i data-lucide="maximize-2" class="w-4 h-4"></i>`;
-            lucide.createIcons({ nodes: [expandCanvasBtn] });
-            toggleCanvas(false)
-        });
-        navCanvasToggle.addEventListener('click', () => toggleCanvas(true));
-
-        expandCanvasBtn.addEventListener('click', () => {
-            canvasOverlay.classList.toggle('canvas-expanded');
-            const isExpanded = canvasOverlay.classList.contains('canvas-expanded');
-            const icon = isExpanded ? 'minimize-2' : 'maximize-2';
-            expandCanvasBtn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
-            expandCanvasBtn.title = isExpanded ? 'Minimize' : 'Maximize';
-            lucide.createIcons({ nodes: [expandCanvasBtn] });
-        });
-
-        downloadCanvasBtn.addEventListener('click', () => {
-            const content = canvasEditor.value;
-            if (!content) return;
-
-            const blob = new Blob([content], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'dx-canvas-export.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
-
-        function updateCanvas(code) {
-            canvasEditor.value = code;
-            runCanvasCode();
-            toggleCanvas(true);
-        }
-
-        function runCanvasCode() {
-            const code = canvasEditor.value;
-            const iframeDoc = canvasPreviewFrame.contentDocument || canvasPreviewFrame.contentWindow.document;
-            iframeDoc.open();
-            iframeDoc.write(code);
-            iframeDoc.close();
-        }
-
-        runCodeBtn.addEventListener('click', runCanvasCode);
-
-        // Helper to add icons and events to code blocks
-        function postProcessCodeBlocks(element) {
-             const preBlocks = element.querySelectorAll('pre');
-            preBlocks.forEach(pre => {
-                // If wrapper already exists, skip
-                if (pre.parentNode.classList.contains('code-block-wrapper')) return;
-
-                const codeEl = pre.querySelector('code');
-                const rawCode = codeEl ? codeEl.innerText : pre.innerText;
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'code-block-wrapper';
-
-                const header = document.createElement('div');
-                header.className = 'code-header';
-
-                const langSpan = document.createElement('span');
-                langSpan.className = 'code-lang';
-                langSpan.innerText = 'Code';
-
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'code-actions';
-
-                // Copy Button
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'action-btn';
-                copyBtn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy';
-                copyBtn.onclick = () => {
-                    navigator.clipboard.writeText(rawCode);
-                    copyBtn.innerHTML = '<i data-lucide="check" class="w-3 h-3"></i> Copied!';
-                    lucide.createIcons({ nodes: [copyBtn] });
-                    setTimeout(() => copyBtn.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copy', 2000);
-                };
-
-                actionsDiv.appendChild(copyBtn);
-
-                // Open in Canvas Button (Only for 0c or HTML/CSS/JS)
-                if (selectedModel === '0c v.2' || rawCode.includes('<html') || rawCode.includes('<!DOCTYPE')) {
-                    const canvasBtn = document.createElement('button');
-                    canvasBtn.className = 'action-btn';
-                    canvasBtn.innerHTML = '<i data-lucide="layout" class="w-3 h-3"></i> Open Canvas';
-                    canvasBtn.onclick = () => updateCanvas(rawCode);
-                    actionsDiv.appendChild(canvasBtn);
-                    lucide.createIcons({ nodes: [canvasBtn] });
-
-                    // Auto-open if 0c and looks like full page
-                    if (selectedModel === '0c v.2' && rawCode.length > 50) {
-                        updateCanvas(rawCode);
-                    }
-                }
-
-                header.appendChild(langSpan);
-                header.appendChild(actionsDiv);
-
-                pre.parentNode.insertBefore(wrapper, pre);
-                wrapper.appendChild(header);
-                wrapper.appendChild(pre);
-                lucide.createIcons({ nodes: [copyBtn] });
-            });
-            lucide.createIcons({ nodes: element });
-        }
-
-        // --- Live Typing Effect ---
-        async function typeWriterEffect(element, fullText) {
-            if (fullText.length < 50) {
-                element.innerHTML = marked.parse(fullText);
-                postProcessCodeBlocks(element);
-                return;
-            }
-
-            let currentText = '';
-            const chunkSize = 4;
-            const delay = 5;
-
-            return new Promise(resolve => {
-                let i = 0;
-                element.classList.add('typing-cursor');
-
-                const interval = setInterval(() => {
-                    if (i >= fullText.length) {
-                        clearInterval(interval);
-                        element.classList.remove('typing-cursor');
-                        element.innerHTML = marked.parse(fullText);
-                        postProcessCodeBlocks(element);
-                        scrollChatToBottom();
-                        resolve();
-                        return;
-                    }
-                    currentText += fullText.substring(i, i + chunkSize);
-                    i += chunkSize;
-
-                    let tempText = currentText;
-                    const codeFenceCount = (tempText.match(/```/g) || []).length;
-                    if (codeFenceCount % 2 !== 0) {
-                        tempText += '\n```';
-                    }
-
-                    element.innerHTML = marked.parse(tempText);
-                    scrollChatToBottom();
-                }, delay);
-            });
-        }
-
-        async function addMessageToUI(sender, message, attachmentUrl = null) {
-            const messageElement = document.createElement('div');
-
-            if (sender === 'user') {
-                messageElement.className = 'chat-bubble chat-bubble-user';
-                const safeMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                let attachmentHtml = '';
-                if (attachmentUrl) {
-                     attachmentHtml = `<img src="${attachmentUrl}" alt="User attachment" class="w-full h-auto rounded-lg mb-2 max-h-64">`;
-                }
-                const messageHtml = message ? `<p>${safeMessage.replace(/\n/g, '<br>')}</p>` : '';
-                messageElement.innerHTML = `${attachmentHtml}${messageHtml}`;
-                chatContainer.appendChild(messageElement);
-                scrollChatToBottom();
-
-            } else {
-                messageElement.className = 'chat-bubble chat-bubble-ai';
-
-                const iconName = MODEL_DETAILS[selectedModel]?.icon || 'zap';
-                messageElement.innerHTML = `
-                    <div class="ai-avatar">
-                         <i data-lucide="${iconName}" class="w-5 h-5 text-white/80"></i>
-                    </div>
-                    <div class="ai-content"></div>
-                `;
-
-                chatContainer.appendChild(messageElement);
-                lucide.createIcons({
-                    nodes: [messageElement.querySelector('.ai-avatar')],
-                    attrs: {'stroke-width': 2}
-                });
-
-                const contentDiv = messageElement.querySelector('.ai-content');
-                await typeWriterEffect(contentDiv, message);
-            }
-        }
-
-        // --- Model Switching ---
-        const modelModal = document.getElementById('model-modal');
-        const modelSelectButton = document.getElementById('model-select-button');
-        const modelCardButtons = document.querySelectorAll('.model-card');
-
-        modelSelectButton.addEventListener('click', () => modelModal.classList.remove('hidden'));
-        document.getElementById('modal-overlay').addEventListener('click', () => modelModal.classList.add('hidden'));
-
-        modelCardButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const newModel = btn.dataset.model;
-                selectedModel = newModel;
-
-                modelCardButtons.forEach(b => {
-                    b.classList.remove('active');
-                    b.querySelector('.check-icon').classList.add('hidden');
-                });
-                btn.classList.add('active');
-                btn.querySelector('.check-icon').classList.remove('hidden');
-
-                const details = MODEL_DETAILS[newModel];
-                document.querySelector('#model-select-button').innerHTML = `
-                    <i data-lucide="${details.icon}" class="w-4 h-4"></i>
-                    <span id="model-select-name">${details.name}</span>
-                `;
-                lucide.createIcons({ nodes: [document.querySelector('#model-select-button')] });
-
-                modelModal.classList.add('hidden');
-
-                if (selectedModel === '0c v.2') {
-                    navCanvasToggle.classList.remove('hidden');
-                    canvasOverlay.classList.remove('study-mode');
-                    canvasTitleText.innerText = "DX Canvas";
-                } else if (selectedModel === 'Study') {
-                    navCanvasToggle.classList.remove('hidden');
-                    canvasOverlay.classList.add('study-mode');
-                    canvasTitleText.innerText = "Study Box";
-                    toggleCanvas(true);
-                } else {
-                    navCanvasToggle.classList.add('hidden');
-                    toggleCanvas(false);
-                }
+        // Mouse Tracker
+        document.addEventListener('mousemove', (e) => {
+            const glow = document.getElementById('cursor-glow');
+            requestAnimationFrame(() => {
+                glow.style.left = e.clientX + 'px';
+                glow.style.top = e.clientY + 'px';
             });
         });
 
-        // --- File Upload ---
-        fileUploadButton.addEventListener('click', () => fileUploadInput.click());
-        fileUploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                attachedFile = { data: ev.target.result, type: file.type };
-                document.getElementById('attachment-preview-container').innerHTML = `
-                    <div class="flex items-center gap-2 text-white bg-white/10 p-2 rounded">
-                        <i data-lucide="paperclip" class="w-4 h-4"></i>
-                        <span class="text-xs truncate max-w-[100px]">${file.name}</span>
-                        <button id="remove-attachment-btn" class="ml-2 hover:text-red-400">&times;</button>
-                    </div>
-                `;
-                document.getElementById('attachment-preview-container').classList.remove('hidden');
-                document.getElementById('remove-attachment-btn').onclick = clearAttachment;
-                lucide.createIcons();
-            };
-            reader.readAsDataURL(file);
-        });
-
-        function clearAttachment() {
-            attachedFile = null;
-            fileUploadInput.value = null;
-            document.getElementById('attachment-preview-container').innerHTML = '';
-            document.getElementById('attachment-preview-container').classList.add('hidden');
+        function toggleModeMenu() {
+            const menu = document.getElementById('mode-menu');
+            menu.classList.toggle('menu-hidden');
+            menu.classList.toggle('menu-visible');
         }
 
-        // --- Chat Submission ---
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = messageInput.value.trim();
-            if (!message && !attachedFile) return;
+        function togglePreview(show) {
+            const p = document.getElementById('preview-panel');
+            p.style.width = show ? '45%' : '0';
+        }
 
-            addMessageToUI('user', message, attachedFile?.data);
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
+        function selectMode(mode, iconClass) {
+            currentMode = mode;
+            document.getElementById('current-mode-icon').className = `fas ${iconClass}`;
 
-            // Format for Backend (OpenAI Style)
-            // 1. System Prompt
-            const messages = [
-                { role: "system", content: PROMPTS[selectedModel] }
-            ];
+            const icon = document.getElementById('current-mode-icon');
+            icon.className = `fas ${iconClass} text-lg ` + (
+                mode === 'chat' ? 'text-blue-400' :
+                mode === 'canvas' ? 'text-purple-400' :
+                mode === 'study' ? 'text-green-400' : 'text-orange-400'
+            );
 
-            // 2. Add History
-            chatHistory.forEach(h => {
-                messages.push({ role: h.role, content: h.content });
-            });
+            toggleModeMenu();
+            if (mode === 'canvas' || mode === 'study') togglePreview(true);
+            else togglePreview(false);
+        }
 
-            // 3. Add Current Message
-            // Note: Simplistic text-only handling for this version as OpenRouter text models might not accept inline base64 images easily without specific multimodal endpoints.
-            // We append a note about the file if present.
-            let fullUserMessage = message;
-            if (attachedFile) {
-                fullUserMessage += `\n[User attached a file: ${fileUploadInput.files[0]?.name}]`;
-            }
-            if (isWebSearchEnabled) {
-                fullUserMessage += `\n[Please perform a deep search on this topic if needed.]`;
-            }
+        const textarea = document.getElementById('user-input');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
 
-            messages.push({ role: "user", content: fullUserMessage });
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
 
-            // UI Loading
-            const loadingId = 'loading-' + Date.now();
-            const loadingEl = document.createElement('div');
-            loadingEl.id = loadingId;
-            loadingEl.className = 'chat-bubble chat-bubble-ai';
-            loadingEl.innerHTML = `
-                <div class="ai-avatar loading-avatar"><i data-lucide="${MODEL_DETAILS[selectedModel].icon}" class="w-5 h-5 text-white/80"></i></div>
-                <div class="ai-content"><div class="thinking-container"><div class="thinking-spinner"></div><span class="thinking-text">${THOUGHTS[selectedModel][0]}</span></div></div>
-            `;
-            chatContainer.appendChild(loadingEl);
-            lucide.createIcons({ nodes: [loadingEl] });
-            scrollChatToBottom();
+        async function sendMessage() {
+            const message = textarea.value.trim();
+            if (!message || isGenerating) return;
 
-            isLoading = true;
+            addMessageToUI('user', message);
+            textarea.value = '';
+            textarea.style.height = 'auto';
+            isGenerating = true;
+
+            const aiBubble = addMessageToUI('ai', '');
+            aiBubble.classList.add('cursor-active');
+
+            let fullResponse = "";
+            let displayedLength = 0;
+            let streamFinished = false;
 
             try {
-                // Call local backend instead of Google API
-                const response = await fetch('/chat', {
+                const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: messages,
-                        model: selectedModel
-                    })
+                    body: JSON.stringify({ message, mode: currentMode, history: conversationHistory })
                 });
 
-                const data = await response.json();
-                loadingEl.remove();
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
 
-                if (!data.reply) {
-                    throw new Error("Invalid Server Response");
-                }
+                const streamProcessor = async () => {
+                    try {
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            fullResponse += decoder.decode(value);
+                        }
+                    } finally {
+                        streamFinished = true;
+                    }
+                };
 
-                const aiText = data.reply;
+                streamProcessor();
 
-                // Update history
-                chatHistory.push({ role: 'user', content: fullUserMessage });
-                chatHistory.push({ role: 'assistant', content: aiText });
+                const renderLoop = () => {
+                    if (displayedLength < fullResponse.length || !streamFinished) {
+                        if (displayedLength < fullResponse.length) {
+                            // High speed typing logic
+                            const delta = fullResponse.length - displayedLength;
+                            const chunkSize = Math.max(2, Math.floor(delta / 4));
+                            displayedLength += chunkSize;
 
-                // Check for Canvas triggers (HTML generation)
-                const hasHtmlBlock = aiText.includes("<!DOCTYPE html>") || aiText.includes("<html");
+                            // Only parse markdown for the displayed portion
+                            if (currentMode !== 'study') {
+                                aiBubble.innerHTML = marked.parse(fullResponse.substring(0, displayedLength));
+                            } else {
+                                aiBubble.innerHTML = `<span class="italic text-gray-500">Processing structured data stream...</span>`;
+                            }
+                            scrollToBottom();
+                        }
+                        requestAnimationFrame(renderLoop);
+                    } else {
+                        finalizeResponse(fullResponse, aiBubble);
+                    }
+                };
 
-                if (selectedModel === 'Study' && hasHtmlBlock) {
-                    addMessageToUI('assistant', "I've generated your study guide in the Study Box. Check the panel on the right!");
-                    updateCanvas(aiText);
-                    toggleCanvas(true);
-                } else if (selectedModel === '0c v.2' && hasHtmlBlock) {
-                     await addMessageToUI('assistant', "Code generated.");
-                     updateCanvas(aiText);
-                } else {
-                    await addMessageToUI('assistant', aiText);
-                }
+                requestAnimationFrame(renderLoop);
 
-            } catch (err) {
-                loadingEl.remove();
-                addMessageToUI('assistant', `Error: ${err.message}`);
-            } finally {
-                isLoading = false;
+            } catch (error) {
+                aiBubble.innerHTML = `<span class="text-red-400">Connection Failed: Check Backend.</span>`;
+                isGenerating = false;
             }
-        });
+        }
 
-        // Initialize
-        document.querySelector('[data-model="F2"]').click();
+        function finalizeResponse(text, bubble) {
+            bubble.classList.remove('cursor-active');
+            if (currentMode === 'study') {
+                renderStudyMode(text, bubble);
+            } else {
+                bubble.innerHTML = marked.parse(text);
+                hljs.highlightAll();
+            }
 
+            conversationHistory.push({ role: "assistant", content: text });
+            isGenerating = false;
+
+            if (currentMode === 'canvas') extractAndRenderHTML(text);
+            scrollToBottom();
+        }
+
+        function addMessageToUI(role, content) {
+            const container = document.getElementById('messages');
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex gap-4 msg-anim ${role === 'user' ? 'flex-row-reverse' : ''}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = `w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-[10px] text-white ${role === 'user' ? 'bg-white/10' : 'bg-gradient-to-br from-blue-600 to-indigo-600'}`;
+            avatar.textContent = role === 'user' ? 'U' : 'DX';
+
+            const bubble = document.createElement('div');
+            bubble.className = `p-4 max-w-[85%] rounded-2xl shadow-xl prose prose-invert text-sm ${role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'glass text-gray-200 rounded-tl-none'}`;
+            bubble.innerHTML = content;
+
+            wrapper.appendChild(avatar);
+            wrapper.appendChild(bubble);
+            container.appendChild(wrapper);
+
+            if (role === 'user') conversationHistory.push({ role: "user", content: content });
+            scrollToBottom();
+            return bubble;
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messages');
+            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+        }
+
+        function extractAndRenderHTML(text) {
+            const match = text.match(/```html([\s\S]*?)```/);
+            if (match && match[1]) {
+                const previewContainer = document.getElementById('preview-content');
+                previewContainer.innerHTML = `<iframe class="w-full h-full bg-white border-none"></iframe>`;
+                const doc = previewContainer.querySelector('iframe').contentWindow.document;
+                doc.open(); doc.write(match[1]); doc.close();
+            }
+        }
+
+        function renderStudyMode(text, msgDiv) {
+            const jsonMatch = text.match(/```json([\s\S]*?)```/);
+            if (jsonMatch && jsonMatch[1]) {
+                try {
+                    const data = JSON.parse(jsonMatch[1]);
+                    msgDiv.innerHTML = "<div class='flex items-center gap-2 text-green-400'><i class='fas fa-check-circle'></i> <span>Learning Module Synthesized.</span></div>";
+                    const preview = document.getElementById('preview-content');
+                    preview.innerHTML = `<div class="p-8 space-y-6"></div>`;
+                    const container = preview.firstChild;
+
+                    data.forEach((item, i) => {
+                        const card = document.createElement('div');
+                        card.className = "bg-[#161b22] p-6 rounded-2xl border border-white/5 shadow-2xl msg-anim";
+                        card.style.animationDelay = `${i * 0.1}s`;
+
+                        if (item.type === 'slide') {
+                            card.innerHTML = `<h3 class="text-blue-400 font-bold mb-2">${item.title}</h3><p class="text-gray-400 text-sm leading-relaxed">${item.content}</p>`;
+                        } else {
+                            card.innerHTML = `<h3 class="text-white text-sm font-bold mb-4">Quiz: ${item.question}</h3><div class="space-y-2">
+                                ${item.options.map((o, idx) => `<button onclick="checkAnswer(this, ${idx}, ${item.answer})" class="w-full text-left p-3 rounded-xl bg-white/5 border border-white/5 text-xs hover:bg-white/10 transition-all">${o}</button>`).join('')}
+                            </div><div class="mt-3 text-xs font-bold hidden result"></div>`;
+                        }
+                        container.appendChild(card);
+                    });
+                } catch(e) { msgDiv.innerHTML = marked.parse(text); }
+            } else msgDiv.innerHTML = marked.parse(text);
+        }
+
+        window.checkAnswer = function(btn, sel, cor) {
+            const parent = btn.parentElement;
+            const res = parent.nextElementSibling;
+            const btns = parent.querySelectorAll('button');
+            btns.forEach(b => b.disabled = true);
+            if(sel === cor) {
+                btn.className = "w-full text-left p-3 rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-400 text-xs";
+                res.textContent = "VERIFIED"; res.className = "mt-3 text-xs font-bold text-emerald-400";
+            } else {
+                btn.className = "w-full text-left p-3 rounded-xl bg-red-500/20 border border-red-500 text-red-400 text-xs";
+                btns[cor].className = "w-full text-left p-3 rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-400 text-xs";
+                res.textContent = "FAILED"; res.className = "mt-3 text-xs font-bold text-red-400";
+            }
+            res.classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
