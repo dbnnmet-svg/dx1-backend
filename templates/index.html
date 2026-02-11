@@ -3,311 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DX-1 | DBNN</title>
+    <title>DBNN DX-1 | Kerala</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #e2e8f0; overflow: hidden; }
-        #cursor-glow { position: fixed; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.02) 50%, rgba(0, 0, 0, 0) 70%); transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
-        .glass { background: rgba(15, 17, 21, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        :root {
+            --brand-primary: #6366f1;
+            --bg-deep: #050508;
+        }
 
-        /* Animations */
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .study-card { animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .thinking-dot { animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            color: #e2e8f0;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        #main-layout { display: flex; width: 100%; height: 100%; position: relative; z-index: 10; }
 
-        #preview-panel { transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        #chat-section {
+            flex: 1; display: flex; flex-direction: column; position: relative;
+        }
 
-        .action-btn { opacity: 0; transition: opacity 0.2s ease; }
-        .glass:hover .action-btn { opacity: 1; }
+        #preview-section {
+            width: 0; background: #000; border-left: 1px solid rgba(255,255,255,0.1);
+            transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden; display: flex; flex-direction: column;
+        }
+        #preview-section.active { width: 50%; }
+        #preview-frame { width: 100%; height: 100%; border: none; background: white; }
+
+        .chat-container {
+            flex-grow: 1; overflow-y: auto; padding: 40px 20px 140px 20px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-bubble { margin-bottom: 24px; max-width: 850px; margin-left: auto; margin-right: auto; opacity: 0; animation: fade-in 0.4s forwards; }
+        @keyframes fade-in { to { opacity: 1; } }
+
+        .chat-bubble-user {
+            background: #ffffff; color: #000000; padding: 12px 20px;
+            border-radius: 20px 20px 4px 20px; width: fit-content;
+            margin-right: calc(50% - 425px); font-weight: 500; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .chat-bubble-ai { color: #e2e8f0; display: flex; gap: 16px; margin-left: calc(50% - 425px); align-items: flex-start; }
+
+        .ai-avatar {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); flex-shrink: 0;
+        }
+
+        .ai-content { flex-grow: 1; font-size: 15px; line-height: 1.7; }
+
+        /* Floating Mode Popup Window */
+        #mode-popup {
+            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(10px);
+            background: rgba(15, 15, 20, 0.95); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+            padding: 8px; width: 220px; display: none; flex-direction: column; gap: 4px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6); z-index: 100;
+        }
+        #mode-popup.active { display: flex; animation: popup-in 0.2s ease-out; transform: translateX(-50%) translateY(0); }
+        @keyframes popup-in { from { opacity: 0; transform: translateX(-50%) translateY(15px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+        .mode-option {
+            display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+            border-radius: 12px; cursor: pointer; transition: 0.2s; font-size: 13px; font-weight: 500;
+        }
+        .mode-option:hover { background: rgba(255,255,255,0.08); }
+        .mode-option.active { background: #6366f1; color: white; }
+
+        .input-island-container {
+            position: absolute; bottom: 30px; left: 0; width: 100%;
+            display: flex; justify-content: center; padding: 0 20px; z-index: 50;
+        }
+
+        .input-island {
+            width: 100%; max-width: 800px;
+            background: rgba(15, 15, 20, 0.8); backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px; padding: 10px 16px;
+            display: flex; align-items: flex-end; gap: 12px;
+            box-shadow: 0 20px 50px -12px rgba(0,0,0,0.8);
+        }
+
+        #mode-trigger {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.2s; flex-shrink: 0; margin-bottom: 2px;
+        }
+        #mode-trigger:hover { background: rgba(255,255,255,0.1); }
+
+        #message-input {
+            background: transparent; border: none; color: white;
+            padding: 10px 4px; font-size: 16px; flex-grow: 1;
+            resize: none; max-height: 150px; outline: none; font-family: 'Inter', sans-serif;
+        }
+
+        #send-btn {
+            width: 40px; height: 40px; border-radius: 12px;
+            background: white; color: black; display: flex; align-items: center; justify-content: center;
+            margin-bottom: 2px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        #send-btn.is-active { background: #ef4444; color: white; }
+
+        #neural-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .thinking-pulse { display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk', monospace; font-size: 12px; color: #818cf8; letter-spacing: 2px; animation: pulse-text 1.5s infinite; }
+        .sparkle { width: 6px; height: 6px; background: #818cf8; border-radius: 50%; box-shadow: 0 0 10px #818cf8; }
+        @keyframes pulse-text { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
     </style>
 </head>
-<body class="h-screen flex flex-col relative overflow-hidden">
-    <div id="cursor-glow"></div>
+<body>
 
-    <!-- Top Bar -->
-    <div class="fixed top-0 left-0 w-full z-50 p-6 flex justify-between items-center pointer-events-none">
-        <div class="flex items-center gap-3 pointer-events-auto">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">DX</div>
-            <div class="flex flex-col">
-                <span class="text-xs font-bold tracking-widest text-white/90 uppercase">DX-1 System</span>
-                <span id="status-label" class="text-[9px] text-blue-400 font-mono tracking-tighter">CORE v3.5 // ONLINE</span>
+    <canvas id="neural-canvas"></canvas>
+
+    <div id="main-layout">
+        <section id="chat-section">
+            <div id="chat-container" class="chat-container">
+                <div class="chat-bubble chat-bubble-ai">
+                    <div class="ai-avatar"><i data-lucide="zap" class="w-4 h-4 text-white"></i></div>
+                    <div class="ai-content">
+                        <p><strong>DBNN DX-1</strong> online.</p>
+                        <p class="text-xs text-indigo-400 font-medium block mt-1 uppercase tracking-tighter">Developed by DBNN AI | Kerala, India</p>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <div id="mode-popup">
+                <div class="mode-option active" onclick="setMode('fast', 'zap')">
+                    <i data-lucide="zap" class="w-4 h-4"></i> Fast Mode
+                </div>
+                <div class="mode-option" onclick="setMode('deep-research', 'brain-circuit')">
+                    <i data-lucide="brain-circuit" class="w-4 h-4"></i> Deep Research
+                </div>
+                <div class="mode-option" onclick="setMode('canvas', 'code')">
+                    <i data-lucide="code" class="w-4 h-4"></i> Canvas Code
+                </div>
+                <div class="mode-option" onclick="setMode('study', 'graduation-cap')">
+                    <i data-lucide="graduation-cap" class="w-4 h-4"></i> Study Mode
+                </div>
+            </div>
+
+            <div class="input-island-container">
+                <form id="chat-form" class="input-island">
+                    <div id="mode-trigger" onclick="toggleModePopup()">
+                        <i id="active-mode-icon" data-lucide="zap" class="w-5 h-5 text-indigo-400"></i>
+                    </div>
+
+                    <textarea id="message-input" placeholder="Ask DBNN anything..." rows="1"></textarea>
+
+                    <button type="submit" id="send-btn">
+                        <i id="send-icon" data-lucide="arrow-up" class="w-5 h-5"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section id="preview-section">
+            <div class="h-12 bg-[#0a0a0c] flex items-center justify-between px-5 border-b border-white/10">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[10px] font-bold tracking-[0.2em] text-gray-400">LIVE DX-SYSTEM PREVIEW</span>
+                </div>
+                <button type="button" onclick="closePreview()" class="text-gray-500 hover:text-white transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <iframe id="preview-frame"></iframe>
+        </section>
     </div>
 
-    <main class="flex-1 flex overflow-hidden relative z-10">
-        <!-- Chat Area -->
-        <div id="chat-container" class="flex-1 flex flex-col relative">
-            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-8 max-w-4xl mx-auto w-full pt-28 pb-44">
-                <div class="flex gap-4 items-start slideIn">
-                    <div class="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-[10px] font-bold text-blue-400">SYS</div>
-                    <div class="glass rounded-2xl rounded-tl-none p-5 text-gray-300 text-sm max-w-[80%] relative">
-                        Interface initialized. Select a specialized mode or begin chatting.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Input Controls -->
-            <div class="absolute bottom-8 left-0 w-full px-6 pointer-events-none">
-                <div class="max-w-3xl mx-auto relative pointer-events-auto">
-                    <!-- Mode Selector Popup -->
-                    <div id="mode-menu" class="hidden absolute bottom-full left-0 mb-4 w-64 glass rounded-2xl shadow-2xl p-2 border border-white/10">
-                        <p class="text-[10px] uppercase tracking-widest text-gray-500 px-3 py-2">Select Processor</p>
-                        <button onclick="selectMode('chat', 'fa-comment-dots', 'blue')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-comment-dots text-blue-400"></i> General Chat</button>
-                        <button onclick="selectMode('deep_research', 'fa-brain', 'cyan')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-brain text-cyan-400"></i> Deep Thinking</button>
-                        <button onclick="selectMode('canvas', 'fa-code', 'purple')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-code text-purple-400"></i> Canvas Designer</button>
-                        <button onclick="selectMode('study', 'fa-graduation-cap', 'green')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-white/5 text-sm flex items-center gap-3"><i class="fas fa-graduation-cap text-green-400"></i> Study Navigator</button>
-                    </div>
-
-                    <!-- Main Input Bar -->
-                    <div class="relative flex items-end glass rounded-2xl border border-white/10 shadow-2xl">
-                        <button onclick="toggleModeMenu()" class="h-14 w-14 flex items-center justify-center text-blue-400 transition-colors hover:bg-white/5" id="mode-btn">
-                            <i class="fas fa-comment-dots text-lg" id="current-mode-icon"></i>
-                        </button>
-                        <textarea id="user-input" rows="1" class="flex-1 bg-transparent text-gray-100 pl-2 pr-14 py-4 focus:outline-none resize-none placeholder-gray-600 text-sm" placeholder="Enter command... (Enter to send, Shift+Enter for new line)"></textarea>
-                        <button onclick="sendMessage()" class="absolute right-2 bottom-2 h-10 w-10 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all flex items-center justify-center shadow-lg shadow-blue-600/20">
-                            <i class="fas fa-arrow-up"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Secondary Panel (Canvas/Study) -->
-        <div id="preview-panel" class="w-0 bg-[#080808] border-l border-white/5 overflow-hidden flex flex-col z-40">
-            <div class="h-16 border-b border-white/5 flex items-center justify-between px-6 shrink-0">
-                <div class="flex items-center gap-3">
-                    <span id="preview-icon-container" class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]" id="preview-title">Output Buffer</span>
-                </div>
-                <button onclick="togglePreview(false)" class="w-8 h-8 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors"><i class="fas fa-times"></i></button>
-            </div>
-            <div id="preview-content" class="flex-1 overflow-auto p-0 relative bg-[#0d1117]">
-                <!-- Dynamic content goes here -->
-            </div>
-        </div>
-    </main>
-
     <script>
-        let currentMode = 'chat';
-        let history = [];
-        let isGenerating = false;
-        let synthesis = window.speechSynthesis;
+        lucide.createIcons();
+        let currentMode = 'fast';
+        let isProcessing = false;
+        let abortController = null;
 
-        // Mouse glow effect
-        document.addEventListener('mousemove', (e) => {
-            const glow = document.getElementById('cursor-glow');
-            glow.style.left = e.clientX + 'px';
-            glow.style.top = e.clientY + 'px';
-        });
+        const chatContainer = document.getElementById('chat-container');
+        const previewSection = document.getElementById('preview-section');
+        const previewFrame = document.getElementById('preview-frame');
+        const sendBtn = document.getElementById('send-btn');
+        const modePopup = document.getElementById('mode-popup');
+        let chatHistory = [];
 
-        // Enter to Send
-        document.getElementById('user-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
+        // --- Controller Functions ---
+        function toggleModePopup() {
+            modePopup.classList.toggle('active');
+        }
+
+        function setMode(mode, iconName) {
+            currentMode = mode;
+            // Update the Trigger Icon
+            const iconEl = document.getElementById('active-mode-icon');
+            iconEl.setAttribute('data-lucide', iconName);
+            lucide.createIcons({nodes: [iconEl]});
+
+            // Update Popup Selection UI
+            document.querySelectorAll('.mode-option').forEach(opt => {
+                opt.classList.remove('active');
+                if(opt.textContent.toLowerCase().includes(mode.replace('-', ' '))) opt.classList.add('active');
+            });
+
+            modePopup.classList.remove('active');
+            if(mode !== 'canvas' && mode !== 'study') closePreview();
+        }
+
+        // Close popup if clicked outside
+        document.addEventListener('click', (e) => {
+            if (!modePopup.contains(e.target) && !document.getElementById('mode-trigger').contains(e.target)) {
+                modePopup.classList.remove('active');
             }
         });
 
-        function toggleModeMenu() {
-            const menu = document.getElementById('mode-menu');
-            menu.classList.toggle('hidden');
+        function closePreview() { previewSection.classList.remove('active'); }
+        function openPreview(html) {
+            previewSection.classList.add('active');
+            const doc = previewFrame.contentWindow.document;
+            doc.open(); doc.write(html); doc.close();
         }
 
-        function selectMode(mode, icon, color) {
-            currentMode = mode;
-            document.getElementById('current-mode-icon').className = `fas ${icon}`;
-            document.getElementById('mode-btn').style.color = `var(--tw-color-${color}-400)`;
-            document.getElementById('status-label').innerText = `CORE v3.5 // ${mode.toUpperCase()}`;
-            toggleModeMenu();
-        }
+        // --- Background & Particle logic stays same ---
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let mouse = { x: null, y: null };
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = resize;
+        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
+        resize();
 
-        function togglePreview(show) {
-            const panel = document.getElementById('preview-panel');
-            panel.style.width = show ? "50%" : "0";
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const message = input.value.trim();
-            if (!message || isGenerating) return;
-
-            addMessage('user', message);
-            input.value = '';
-            input.style.height = 'auto';
-            isGenerating = true;
-
-            const aiBubble = addMessage('ai', '<div class="flex gap-1"><span class="thinking-dot">.</span><span class="thinking-dot" style="animation-delay:0.2s">.</span><span class="thinking-dot" style="animation-delay:0.4s">.</span></div>');
-            let fullResponse = "";
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message, mode: currentMode, history })
-                });
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                aiBubble.innerHTML = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value);
-                    fullResponse += chunk;
-
-                    if (currentMode !== 'study') {
-                        aiBubble.innerHTML = marked.parse(fullResponse);
-                        hljs.highlightAll();
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vX = (Math.random() - 0.5) * 0.8;
+                this.vY = (Math.random() - 0.5) * 0.8;
+                const colors = [200, 240, 280, 320, 180];
+                this.hue = colors[Math.floor(Math.random() * colors.length)];
+            }
+            update() {
+                this.x += this.vX; this.y += this.vY;
+                if(this.x < 0 || this.x > canvas.width) this.vX *= -1;
+                if(this.y < 0 || this.y > canvas.height) this.vY *= -1;
+                if(mouse.x) {
+                    let dx = mouse.x - this.x; let dy = mouse.y - this.y;
+                    let d = Math.sqrt(dx*dx + dy*dy);
+                    if(d < 150) {
+                        ctx.beginPath(); ctx.strokeStyle = `hsla(${this.hue}, 80%, 60%, ${1 - d/150})`;
+                        ctx.lineWidth = 1; ctx.moveTo(this.x, this.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
                     }
                 }
+            }
+            draw() {
+                ctx.beginPath(); ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, 0.6)`;
+                ctx.arc(this.x, this.y, 1.5, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        const particles = Array.from({length: 80}, () => new Particle());
+        function animate() {
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
 
-                history.push({ role: "user", content: message }, { role: "assistant", content: fullResponse });
+        function updateButtonUI(loading) {
+            isProcessing = loading;
+            if (loading) {
+                sendBtn.classList.add('is-active');
+                sendBtn.innerHTML = '<i data-lucide="square" class="w-5 h-5 fill-current"></i>';
+            } else {
+                sendBtn.classList.remove('is-active');
+                sendBtn.innerHTML = '<i data-lucide="arrow-up" class="w-5 h-5"></i>';
+            }
+            lucide.createIcons({nodes: [sendBtn]});
+        }
 
-                // Post-processing based on mode
-                if (currentMode === 'canvas') handleCanvas(fullResponse);
-                if (currentMode === 'study') handleStudy(fullResponse, aiBubble);
-                if (currentMode === 'deep_research') aiBubble.innerHTML = marked.parse(fullResponse);
-
-            } catch (error) {
-                aiBubble.innerHTML = `<span class="text-red-400">Connection Interrupted: ${error.message}</span>`;
-            } finally {
-                isGenerating = false;
+        async function smartType(container, text) {
+            const sections = text.split(/(```[\s\S]*?```)/g);
+            for (let chunk of sections) {
+                if (!chunk || !isProcessing) continue;
+                if (chunk.startsWith('```')) {
+                    const codeBox = document.createElement('div');
+                    codeBox.style.margin = "16px 0";
+                    codeBox.innerHTML = marked.parse(chunk);
+                    container.appendChild(codeBox);
+                    codeBox.querySelectorAll('pre code').forEach(hljs.highlightElement);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else {
+                    const textSpan = document.createElement('span');
+                    container.appendChild(textSpan);
+                    const rawChars = chunk.split('');
+                    for (let char of rawChars) {
+                        if (!isProcessing) break;
+                        textSpan.textContent += char;
+                        if (Math.random() > 0.8) chatContainer.scrollTop = chatContainer.scrollHeight;
+                        await new Promise(r => setTimeout(r, 4));
+                    }
+                    textSpan.innerHTML = marked.parseInline(textSpan.textContent);
+                }
             }
         }
 
-        function addMessage(role, content) {
-            const container = document.getElementById('messages');
-            const div = document.createElement('div');
-            div.className = `flex gap-4 ${role === 'user' ? 'flex-row-reverse' : ''} slideIn group`;
-
-            const icon = role === 'user' ? 'USER' : 'DX-1';
-            const iconColor = role === 'user' ? 'bg-white/5' : 'bg-blue-600/10 text-blue-400';
-
-            const actionsHtml = role === 'ai' ? `
-                <div class="absolute -bottom-6 right-2 flex gap-2 action-btn">
-                    <button onclick="copyToClipboard(this)" class="text-[10px] text-gray-500 hover:text-blue-400 transition-colors"><i class="fas fa-copy"></i> Copy</button>
-                    <button onclick="speakText(this)" class="text-[10px] text-gray-500 hover:text-green-400 transition-colors"><i class="fas fa-volume-up"></i> Listen</button>
-                </div>
-            ` : '';
-
-            div.innerHTML = `
-                <div class="w-8 h-8 rounded-lg ${iconColor} border border-white/5 flex items-center justify-center text-[9px] font-bold shrink-0">${icon}</div>
-                <div class="glass p-4 rounded-2xl ${role === 'user' ? 'rounded-tr-none bg-blue-600/10' : 'rounded-tl-none'} text-sm text-gray-200 prose prose-invert max-w-[85%] relative">
-                    <div class="message-content">${content}</div>
-                    ${actionsHtml}
-                </div>
-            `;
-            container.appendChild(div);
-            container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-            return div.querySelector('.message-content');
-        }
-
-        function copyToClipboard(btn) {
-            const content = btn.closest('.glass').querySelector('.message-content').innerText;
-            const el = document.createElement('textarea');
-            el.value = content;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-
-            const original = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-            setTimeout(() => btn.innerHTML = original, 2000);
-        }
-
-        function speakText(btn) {
-            if (synthesis.speaking) {
-                synthesis.cancel();
-                btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+        document.getElementById('chat-form').onsubmit = async (e) => {
+            e.preventDefault();
+            if (isProcessing) {
+                if (abortController) abortController.abort();
+                isProcessing = false;
+                updateButtonUI(false);
                 return;
             }
-            const content = btn.closest('.glass').querySelector('.message-content').innerText;
-            const utterance = new SpeechSynthesisUtterance(content);
-            utterance.onend = () => {
-                btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
-            };
-            btn.innerHTML = '<i class="fas fa-stop"></i> Stop';
-            synthesis.speak(utterance);
-        }
 
-        function handleCanvas(text) {
-            const codeMatch = text.match(/```html([\s\S]*?)```/);
-            if (codeMatch) {
-                const preview = document.getElementById('preview-content');
-                preview.innerHTML = `<iframe id="canvas-frame" class="w-full h-full bg-white"></iframe>`;
-                const iframe = document.getElementById('canvas-frame');
-                const doc = iframe.contentWindow.document;
-                doc.open(); doc.write(codeMatch[1]); doc.close();
-                document.getElementById('preview-title').innerText = "Canvas Preview";
-                togglePreview(true);
+            const input = document.getElementById('message-input');
+            const val = input.value.trim();
+            if(!val) return;
+
+            updateButtonUI(true);
+            abortController = new AbortController();
+
+            const uDiv = document.createElement('div');
+            uDiv.className = 'chat-bubble chat-bubble-user';
+            uDiv.innerText = val;
+            chatContainer.appendChild(uDiv);
+            input.value = ''; input.style.height = 'auto';
+
+            const aiDiv = document.createElement('div');
+            aiDiv.className = 'chat-bubble chat-bubble-ai';
+            aiDiv.innerHTML = `
+                <div class="ai-avatar"><i data-lucide="cpu" class="w-4 h-4 text-white"></i></div>
+                <div class="ai-content">
+                    <div class="thinking-pulse"><div class="sparkle"></div> ANALYZING...</div>
+                </div>`;
+            chatContainer.appendChild(aiDiv);
+            lucide.createIcons({nodes:[aiDiv]});
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: val, mode: currentMode, history: chatHistory }),
+                    signal: abortController.signal
+                });
+
+                const data = await res.json();
+                const contentArea = aiDiv.querySelector('.ai-content');
+                contentArea.innerHTML = '';
+
+                if (data.error) {
+                    contentArea.innerHTML = `<p class="text-red-400">${data.error}</p>`;
+                } else {
+                    let responseText = data.response;
+                    const htmlMatch = responseText.match(/```html([\s\S]*?)```/);
+                    if (htmlMatch && (currentMode === 'canvas' || currentMode === 'study')) {
+                        openPreview(htmlMatch[1]);
+                    }
+                    await smartType(contentArea, responseText);
+                    chatHistory.push({role: "user", content: val}, {role: "assistant", content: responseText});
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    aiDiv.querySelector('.ai-content').innerHTML = '<p class="text-gray-500 italic text-xs mt-2">Response stopped by user.</p>';
+                } else {
+                    aiDiv.querySelector('.ai-content').innerHTML = "System Interrupted.";
+                }
+            } finally {
+                updateButtonUI(false);
             }
-        }
+        };
 
-        function handleStudy(text, bubble) {
-            const jsonMatch = text.match(/```json([\s\S]*?)```/);
-            if (jsonMatch) {
-                try {
-                    const data = JSON.parse(jsonMatch[1]);
-                    bubble.innerHTML = "Study module loaded into visualizer.";
-                    const preview = document.getElementById('preview-content');
-                    preview.innerHTML = `<div class="p-8 space-y-8 max-w-2xl mx-auto"></div>`;
-
-                    data.forEach((item, index) => {
-                        const card = document.createElement('div');
-                        card.className = "study-card bg-[#111] p-6 rounded-2xl border border-white/5 shadow-2xl";
-                        card.style.animationDelay = `${index * 0.1}s`;
-
-                        if (item.type === 'slide') {
-                            card.innerHTML = `
-                                <div class="text-[10px] text-green-500 font-mono mb-2">TOPIC // 0${index+1}</div>
-                                <h2 class="text-xl font-bold text-white mb-4">${item.title}</h2>
-                                <p class="text-gray-400 leading-relaxed">${item.content}</p>
-                            `;
-                        } else if (item.type === 'quiz') {
-                            card.innerHTML = `
-                                <div class="text-[10px] text-yellow-500 font-mono mb-2">VALIDATION QUIZ</div>
-                                <h2 class="text-lg font-medium text-white mb-6">${item.question}</h2>
-                                <div class="grid grid-cols-1 gap-3">
-                                    ${item.options.map((opt, i) => `
-                                        <button onclick="checkAnswer(this, ${i === item.answer})" class="w-full text-left p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all text-sm">
-                                            ${opt}
-                                        </button>
-                                    `).join('')}
-                                </div>
-                            `;
-                        }
-                        preview.firstChild.appendChild(card);
-                    });
-                    document.getElementById('preview-title').innerText = "Study Navigator";
-                    togglePreview(true);
-                } catch (e) { bubble.innerHTML = marked.parse(text); }
-            } else { bubble.innerHTML = marked.parse(text); }
-        }
-
-        function checkAnswer(btn, isCorrect) {
-            btn.style.borderColor = isCorrect ? '#10b981' : '#ef4444';
-            btn.style.background = isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-            if (isCorrect) {
-                btn.innerHTML += ' <i class="fas fa-check-circle ml-2"></i>';
-            } else {
-                btn.innerHTML += ' <i class="fas fa-times-circle ml-2"></i>';
-            }
-        }
+        const tx = document.getElementById('message-input');
+        tx.oninput = function() { this.style.height = 'auto'; this.style.height = this.scrollHeight + 'px'; };
+        tx.onkeydown = function(e) { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('chat-form').dispatchEvent(new Event('submit')); } };
     </script>
 </body>
 </html>

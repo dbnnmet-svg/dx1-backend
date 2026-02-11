@@ -1,112 +1,113 @@
-import os
-import json
+from flask import Flask, render_template, request, jsonify
+from groq import Groq
 import requests
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
-from flask_cors import CORS
+import random
 
 app = Flask(__name__)
 
-# --- CORS CONFIGURATION ---
-# Enabled for cross-origin requests on Render
-CORS(app)
-
-# --- CONFIGURATION ---
-# API Keys provided including the new key and rotated existing ones
-API_KEYS = [
-    "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",
-    "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",
-    "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"
+# --- API Configurations ---
+GROQ_API_KEY = "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"
+# Load balancing between your two OpenRouter keys
+OR_API_KEYS = [
+    "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",
+    "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"
 ]
-CURRENT_KEY_INDEX = 0
 
-# Model Configuration
-REAL_MODEL = "stepfun/step-3.5-flash:free"
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+groq_client = Groq(api_key=GROQ_API_KEY)
+
+# --- Model Mapping ---
+DEFAULT_MODEL = "llama-3.3-70b-versatile"
+SPECIAL_MODEL = "stepfun/step-3.5-flash:free"
+
+IDENTITY = "You are DBNN DX-1, a premium AI developed by DBNN AI in Kerala, India."
+
+SYSTEM_PROMPTS = {
+    "fast": (
+        f"{IDENTITY} Mode: ULTRA-FAST. Answer briefly. No intros."
+    ),
+    "deep-research": (
+        f"{IDENTITY} Mode: RESEARCH. Provide exhaustive technical analysis."
+    ),
+    "canvas": (
+        f"{IDENTITY} Mode: CANVAS. Senior Frontend Architect. "
+        "Output ONLY a complete, standalone, high-performance HTML file using Tailwind CSS. "
+        "Include modern animations (GSAP or CSS keyframes)."
+    ),
+    "study": (
+        f"{IDENTITY} Mode: STUDY. Interactive Learning Architect. "
+        "Based on user info, create a 'PPT-style' interactive presentation. "
+        "REQUIREMENTS: \n"
+        "1. Multiple slides with 'Next/Prev' buttons.\n"
+        "2. An interactive MCQ section with instant feedback.\n"
+        "3. Smooth fade/slide animations using Tailwind/CSS.\n"
+        "4. Entirely standalone HTML/JS code block."
+    )
+}
 
 
-def get_next_key():
-    """Rotates through the API keys round-robin style."""
-    global CURRENT_KEY_INDEX
-    if not API_KEYS:
-        return None
-    key = API_KEYS[CURRENT_KEY_INDEX]
-    CURRENT_KEY_INDEX = (CURRENT_KEY_INDEX + 1) % len(API_KEYS)
-    return key
+def call_openrouter(messages):
+    """Helper to call OpenRouter with rotated keys for speed."""
+    api_key = random.choice(OR_API_KEYS)
+    response = requests.post(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": SPECIAL_MODEL,
+            "messages": messages,
+            "temperature": 0.3
+        }
+    )
+    return response.json()
 
 
 @app.route('/')
 def home():
-    """Serves the frontend."""
     return render_template('index.html')
 
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
-    user_message = data.get('message', '')
-    mode = data.get('mode', 'chat')
+    mode = data.get('mode', 'fast')
+    user_message = data.get('message')
     history = data.get('history', [])
 
-    system_prompt = "You are DX-1, a helpful AI assistant made by DBNN."
-    if mode == 'canvas':
-        system_prompt += " Provide code in markdown blocks. For UI, provide a SINGLE HTML file."
-    elif mode == 'study':
-        system_prompt += " Output strictly in JSON format for slides and quizzes."
-    elif mode == 'deep_research':
-        system_prompt += " Break down logic into Step 1, Step 2, etc."
+    # Prepare Message Structure
+    messages = [{"role": "system", "content": SYSTEM_PROMPTS.get(mode, IDENTITY)}]
 
-    messages = [{"role": "system", "content": system_prompt}]
-    # Safety check for history formatting
-    formatted_history = []
-    for h in history:
-        if isinstance(h, dict) and 'role' in h and 'content' in h:
-            formatted_history.append({"role": h['role'], "content": h['content']})
+    # Process history
+    for msg in history[-6:]:
+        role = "assistant" if msg.get("role") == "model" else msg.get("role")
+        messages.append({"role": role, "content": msg.get("content")})
 
-    messages.extend(formatted_history[-10:])
     messages.append({"role": "user", "content": user_message})
 
-    current_api_key = get_next_key()
-    headers = {
-        "Authorization": f"Bearer {current_api_key}",
-        "Content-Type": "application/json",
-        "X-Title": "DX-1 Ultra"
-    }
+    try:
+        # Route to OpenRouter for Canvas/Study, otherwise use Groq
+        if mode in ['canvas', 'study']:
+            result = call_openrouter(messages)
+            if 'choices' in result:
+                ai_response = result['choices'][0]['message']['content']
+            else:
+                raise Exception(f"OpenRouter Error: {result}")
+        else:
+            completion = groq_client.chat.completions.create(
+                model=DEFAULT_MODEL,
+                messages=messages,
+                temperature=0.6,
+                max_tokens=2048
+            )
+            ai_response = completion.choices[0].message.content
 
-    payload = {
-        "model": REAL_MODEL,
-        "messages": messages,
-        "stream": True
-    }
+        return jsonify({"response": ai_response})
 
-    def generate():
-        try:
-            response = requests.post(OPENROUTER_URL, headers=headers, json=payload, stream=True, timeout=60)
-            if response.status_code != 200:
-                yield f"API Error: {response.status_code} - {response.text}"
-                return
-
-            for line in response.iter_lines():
-                if line:
-                    line = line.decode('utf-8')
-                    if line.startswith('data: '):
-                        if line == 'data: [DONE]':
-                            break
-                        try:
-                            content = json.loads(line[6:])
-                            if 'choices' in content and content['choices']:
-                                delta = content['choices'][0].get('delta', {})
-                                if 'content' in delta:
-                                    yield delta['content']
-                        except (json.JSONDecodeError, KeyError, IndexError):
-                            continue
-        except Exception as e:
-            yield f"Stream Error: {str(e)}"
-
-    return Response(stream_with_context(generate()), content_type='text/plain')
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({"error": "Neural Link Interrupted. Check API Keys."}), 500
 
 
 if __name__ == '__main__':
-    # Render uses the PORT environment variable
-    port = int(os.environ.get("PORT", 5000))
-    # host='0.0.0.0' is mandatory for cloud access
-    app.run(host='0.0.0.0', port=port)# 1. Initialize git in your folder
+    app.run(debug=True, port=5000)
