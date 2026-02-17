@@ -2,209 +2,146 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DBNN DX-1 | DBNN </title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DBNN DX-1 | Neural OS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --brand-primary: #6366f1;
-            --bg-deep: #020205;
-            --glass-bg: rgba(10, 10, 15, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --bg-deep: #020208;
+            --glass: rgba(10, 10, 20, 0.7);
+            --primary: #6366f1;
+            --accent-pink: #f43f5e;
+            --accent-cyan: #22d3ee;
+            --accent-purple: #a855f7;
         }
 
         body {
+            background: var(--bg-deep);
+            color: #e2e8f0;
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-deep);
-            color: #e2e8f0;
-            margin: 0;
-            height: 100dvh;
-            display: flex;
+            height: 100vh;
             overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            margin: 0;
         }
 
-        #main-layout { display: flex; width: 100%; height: 100%; position: relative; z-index: 10; }
-        #chat-section { flex: 1; display: flex; flex-direction: column; position: relative; width: 100%; }
-
-        #preview-section {
-            background: #000; border-left: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow: hidden; display: flex; flex-direction: column;
-            position: absolute; right: 0; top: 0; height: 100%; z-index: 50;
-            width: 0; opacity: 0; pointer-events: none;
+        /* THE FIX: Background set to ignore ALL mouse interaction */
+        #neural-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            background: radial-gradient(circle at 50% 50%, #0d0d2b 0%, #020208 100%);
         }
 
-        @media (min-width: 768px) {
-            #preview-section { position: relative; }
-            #preview-section.active { width: 50%; opacity: 1; pointer-events: auto; }
+        /* Layout container ignores clicks but passes them to children */
+        #main-layout {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
         }
 
-        @media (max-width: 767px) {
-            #preview-section.active { width: 100%; opacity: 1; pointer-events: auto; }
+        /* Elements that NEED to be clickable */
+        #chat-section, .input-island, .suggestion-card, .user-bubble, .action-icon-btn, .mode-item, #send-btn, #user-input, .preview-header button {
+            pointer-events: auto;
         }
 
-        #preview-frame { width: 100%; height: 100%; border: none; background: #020205; }
+        #chat-section { flex: 1; display: flex; flex-direction: column; height: 100%; position: relative; min-width: 0; }
+        .chat-container { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        .chat-wrapper { max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; padding-bottom: 20px; }
 
-        .chat-container {
-            flex-grow: 1; overflow-y: auto; padding: 20px 16px 160px 16px;
-            scroll-behavior: smooth; display: flex; flex-direction: column;
-        }
+        /* Bubbles */
+        .user-bubble { background: var(--primary); padding: 12px 18px; border-radius: 18px 18px 4px 18px; align-self: flex-end; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); max-width: 85%; border: 1px solid rgba(255,255,255,0.1); }
+        .ai-bubble { display: flex; gap: 12px; margin-bottom: 24px; width: 100%; }
+        .ai-avatar { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--primary), var(--accent-purple)); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); }
+        .ai-content { flex: 1; font-size: 15px; line-height: 1.6; color: #cbd5e1; min-width: 0; }
 
-        .chat-wrapper { width: 100%; max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; }
+        /* Suggestions */
+        #suggestions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 20px; }
+        .suggestion-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 16px; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(10px); }
+        .suggestion-card:hover { background: rgba(99, 102, 241, 0.2); border-color: var(--primary); transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
 
-        .chat-bubble { margin-bottom: 24px; opacity: 0; animation: fade-in 0.4s forwards; }
-        @keyframes fade-in { to { opacity: 1; } }
-
-        .chat-bubble-user {
-            background: rgba(99, 102, 241, 0.15);
-            color: #e2e8f0;
-            padding: 12px 20px;
-            border-radius: 20px 20px 4px 20px;
-            width: fit-content;
-            align-self: flex-end;
-            font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border: 1px solid rgba(99, 102, 241, 0.3);
-            backdrop-filter: blur(10px);
-            max-width: 85%;
-        }
-
-        .chat-bubble-ai { color: #e2e8f0; display: flex; gap: 16px; align-self: flex-start; width: 100%; }
-
-        .ai-avatar {
-            width: 32px; height: 32px; border-radius: 8px;
-            background: linear-gradient(135deg, #6366f1, #a855f7);
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); flex-shrink: 0;
-        }
-
-        .ai-content { flex-grow: 1; font-size: 15px; line-height: 1.7; overflow-x: hidden; }
-
-        .ai-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
-        .ai-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1rem; }
-        .ai-content li { margin-bottom: 0.5rem; display: list-item; }
-        .ai-content strong { color: #818cf8; font-weight: 600; }
-        .ai-content p { margin-bottom: 1rem; }
-        .ai-content pre { overflow-x: auto; max-width: 100%; border-radius: 8px; margin: 12px 0; }
-
-        .suggestions-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px; margin-top: 24px; width: 100%;
-        }
-        .suggestion-chip {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 18px; padding: 14px; font-size: 13px;
-            color: #94a3b8; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex; flex-direction: column; gap: 10px;
-        }
-        .suggestion-chip:hover {
-            background: rgba(99, 102, 241, 0.1);
-            border-color: rgba(99, 102, 241, 0.5);
-            color: white; transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 10px 20px -10px rgba(99, 102, 241, 0.3);
-        }
-
-        #mode-popup {
-            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(10px);
-            background: var(--glass-bg); backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border); border-radius: 20px;
-            padding: 8px; width: 220px; display: none; flex-direction: column; gap: 4px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6); z-index: 100;
-        }
-        #mode-popup.active { display: flex; animation: popup-in 0.2s ease-out; transform: translateX(-50%) translateY(0); }
-
-        .mode-option {
-            display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-            border-radius: 12px; cursor: pointer; transition: 0.2s; font-size: 13px; font-weight: 500;
-        }
-        .mode-option:hover { background: rgba(255,255,255,0.08); }
-        .mode-option.active { background: #6366f1; color: white; }
-
-        .input-island-container {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            display: flex; justify-content: center; padding: 0 16px 20px 16px; z-index: 50;
-            background: linear-gradient(to top, var(--bg-deep) 30%, transparent);
-            padding-bottom: max(20px, env(safe-area-inset-bottom));
-        }
-
+        /* Input Island */
+        .input-area-wrapper { width: 100%; padding: 20px 20px 40px 20px; background: linear-gradient(to top, var(--bg-deep) 60%, transparent); display: flex; justify-content: center; pointer-events: none; }
         .input-island {
-            width: 100%; max-width: 800px;
-            background: var(--glass-bg); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px; padding: 10px 16px;
-            display: flex; align-items: flex-end; gap: 10px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.9);
+            width: 100%;
+            max-width: 800px;
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 30px;
+            padding: 10px 22px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(99, 102, 241, 0.15);
+            position: relative;
+        }
+        input {
+            background: transparent;
+            border: none;
+            flex: 1;
+            color: white;
+            outline: none;
+            font-size: 16px;
+            height: 50px;
+            cursor: text;
         }
 
-        #message-input {
-            background: transparent; border: none; color: white;
-            padding: 10px 4px; font-size: 16px; flex-grow: 1;
-            resize: none; max-height: 150px; outline: none; font-family: 'Inter', sans-serif;
-            line-height: 1.5;
-        }
+        /* Mode Menu */
+        #mode-menu { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); background: #0a0a1a; border: 1px solid #333; border-radius: 20px; padding: 10px; display: none; flex-direction: column; z-index: 100; min-width: 220px; box-shadow: 0 25px 70px rgba(0,0,0,0.9); pointer-events: auto; }
+        #mode-menu.active { display: flex; }
+        .mode-item { padding: 12px 16px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 14px; transition: 0.2s; color: #94a3b8; }
+        .mode-item:hover { background: rgba(255,255,255,0.08); color: white; }
+        .mode-item.selected { background: var(--primary); color: white; }
 
-        #send-btn {
-            width: 40px; height: 40px; border-radius: 12px;
-            background: rgba(255, 255, 255, 0.1); color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            margin-bottom: 2px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
-            border: 1px solid transparent;
-        }
-        #send-btn:hover { background: rgba(255, 255, 255, 0.2); }
-        #send-btn.is-active { background: #ef4444; color: white; border-color: #ef4444; }
+        /* Preview Pane */
+        #preview-pane { position: absolute; right: 0; top: 0; width: 0; height: 100%; background: white; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); z-index: 50; border-left: 1px solid #333; overflow: hidden; display: flex; flex-direction: column; pointer-events: auto; }
+        #preview-pane.active { width: 50%; }
+        .preview-header { padding: 12px 16px; background: #000; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
+        iframe { width: 100%; flex: 1; border: none; background: white; }
 
-        #neural-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-
-        .thinking-pulse { display: flex; align-items: center; gap: 10px; font-family: 'Space Grotesk', monospace; font-size: 12px; color: #818cf8; letter-spacing: 2px; animation: pulse-text 1.5s infinite; }
-        @keyframes pulse-text { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        @media (max-width: 1024px) { #preview-pane.active { width: 100%; } }
     </style>
 </head>
 <body>
-
     <canvas id="neural-canvas"></canvas>
 
     <div id="main-layout">
         <section id="chat-section">
             <div id="chat-container" class="chat-container">
                 <div class="chat-wrapper" id="chat-wrapper">
-                    <div class="chat-bubble chat-bubble-ai">
-                        <div class="ai-avatar"><i data-lucide="zap" class="w-4 h-4 text-white"></i></div>
+                    <div class="ai-bubble">
+                        <div class="ai-avatar"><i data-lucide="sparkles" class="text-white w-5 h-5"></i></div>
                         <div class="ai-content">
-                            <p class="text-xl font-bold tracking-tight mb-1 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">DBNN DX-1</p>
-                            <p class="text-xs text-indigo-400/80 font-medium block uppercase tracking-widest mb-6">Neural OS Interface | Kerala, India</p>
-
-                            <div class="suggestions-grid" id="start-suggestions">
-                                <!-- Updated passing the target mode string as second argument -->
-                                <div class="suggestion-chip" onclick="quickSend('Tell me a story', 'deep-research')">
-                                    <i data-lucide="book-open" class="w-5 h-5 text-indigo-400"></i>
-                                    <span class="font-medium text-white">Tell me a story</span>
-                                    <span class="text-[10px] opacity-50">Creative writing & narrative</span>
+                            <p><strong>Neural Link Established.</strong> I am DX-1 🚀. Hmmm... mmm, let's see. The grid is vibrant and ready for your input! What are we creating?</p>
+                            <div id="suggestions-grid">
+                                <div class="suggestion-card" onclick="useSuggestion('Make me a retro space shooter game with high-end physics', 'canvas', 'layout')">
+                                    <i data-lucide="gamepad-2" class="text-indigo-400 w-5 h-5"></i>
+                                    <span class="text-sm font-semibold">Build a Game</span>
+                                    <span class="text-xs text-gray-400">Mode: Canvas</span>
                                 </div>
-                                <div class="suggestion-chip" onclick="quickSend('Make me a game', 'canvas')">
-                                    <i data-lucide="gamepad-2" class="w-5 h-5 text-pink-400"></i>
-                                    <span class="font-medium text-white">Make me a game</span>
-                                    <span class="text-[10px] opacity-50">Logic & interactive code</span>
+                                <div class="suggestion-card" onclick="useSuggestion('Generate a professional animated PPT about Artificial Intelligence in 2026', 'study', 'book')">
+                                    <i data-lucide="presentation" class="text-pink-400 w-5 h-5"></i>
+                                    <span class="text-sm font-semibold">Design a Presentation</span>
+                                    <span class="text-xs text-gray-400">Mode: Study</span>
                                 </div>
-                                <div class="suggestion-chip" onclick="quickSend('Make me a PPT about AI', 'study')">
-                                    <i data-lucide="presentation" class="w-5 h-5 text-orange-400"></i>
-                                    <span class="font-medium text-white">Make PPT about AI</span>
-                                    <span class="text-[10px] opacity-50">Knowledge & structure</span>
-                                </div>
-                                <div class="suggestion-chip" onclick="quickSend('Make text animation with code', 'study')">
-                                    <i data-lucide="clapperboard" class="w-5 h-5 text-green-400"></i>
-                                    <span class="font-medium text-white">Text animation</span>
-                                    <span class="text-[10px] opacity-50">Frontend FX & CSS</span>
+                                <div class="suggestion-card" onclick="useSuggestion('Tell me a deep, immersive story about an AI discovering emotions', 'fast', 'zap')">
+                                    <i data-lucide="scroll-text" class="text-cyan-400 w-5 h-5"></i>
+                                    <span class="text-sm font-semibold">Write a Story</span>
+                                    <span class="text-xs text-gray-400">Mode: Fast Chat</span>
                                 </div>
                             </div>
                         </div>
@@ -212,308 +149,277 @@
                 </div>
             </div>
 
-            <div id="mode-popup">
-                <div class="mode-option active" onclick="setMode('fast', 'zap')">
-                    <i data-lucide="zap" class="w-4 h-4"></i> Fast Mode
-                </div>
-                <div class="mode-option" onclick="setMode('deep-research', 'brain-circuit')">
-                    <i data-lucide="brain-circuit" class="w-4 h-4"></i> Deep Research
-                </div>
-                <div class="mode-option" onclick="setMode('canvas', 'code')">
-                    <i data-lucide="code" class="w-4 h-4"></i> Canvas Code
-                </div>
-                <div class="mode-option" onclick="setMode('study', 'graduation-cap')">
-                    <i data-lucide="graduation-cap" class="w-4 h-4"></i> Study Mode
-                </div>
+            <div id="mode-menu">
+                <div id="mode-fast" class="mode-item selected" onclick="changeMode('fast', 'zap')"><i data-lucide="zap" class="w-4 h-4 text-indigo-400"></i> Fast Chat</div>
+                <div id="mode-canvas" class="mode-item" onclick="changeMode('canvas', 'layout')"><i data-lucide="layout" class="w-4 h-4 text-pink-400"></i> Canvas Mode</div>
+                <div id="mode-study" class="mode-item" onclick="changeMode('study', 'book')"><i data-lucide="book" class="w-4 h-4 text-cyan-400"></i> Study Mode</div>
             </div>
 
-            <div class="input-island-container">
-                <form id="chat-form" class="input-island">
-                    <div id="mode-trigger" onclick="toggleModePopup()">
-                        <i id="active-mode-icon" data-lucide="zap" class="w-5 h-5 text-indigo-400"></i>
-                    </div>
-                    <textarea id="message-input" placeholder="Ask DBNN anything..." rows="1" enterkeyhint="send"></textarea>
-                    <button type="submit" id="send-btn">
-                        <i id="send-icon" data-lucide="arrow-up" class="w-5 h-5"></i>
-                    </button>
-                </form>
+            <div class="input-area-wrapper">
+                <div class="input-island">
+                    <button onclick="toggleModeMenu()" class="text-indigo-400 hover:text-white transition"><i id="mode-icon" data-lucide="zap" class="w-5 h-5"></i></button>
+                    <input id="user-input" placeholder="Type your neural command..." autocomplete="off">
+                    <button id="send-btn" onclick="handleSend()" class="bg-indigo-600 p-2.5 rounded-full text-white hover:bg-indigo-500 hover:scale-110 active:scale-90 transition-all shadow-lg shadow-indigo-500/40"><i data-lucide="arrow-up" class="w-5 h-5"></i></button>
+                </div>
             </div>
         </section>
 
-        <section id="preview-section">
-            <div class="h-12 bg-[#0a0a0c] flex items-center justify-between px-5 border-b border-white/10 shrink-0">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="text-[10px] font-bold tracking-[0.2em] text-gray-400">LIVE DX-SYSTEM PREVIEW</span>
-                </div>
-                <button type="button" onclick="closePreview()" class="text-gray-500 hover:text-white transition p-2"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <div id="preview-pane">
+            <div class="preview-header">
+                <span id="preview-title" class="text-[10px] text-gray-500 font-mono tracking-widest uppercase">Live DX-1 Render</span>
+                <button onclick="closePreview()" class="text-white bg-red-500 hover:bg-red-600 w-8 h-8 flex items-center justify-center rounded-full"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
             <iframe id="preview-frame"></iframe>
-        </section>
+        </div>
     </div>
 
     <script>
         lucide.createIcons();
         let currentMode = 'fast';
-        let isProcessing = false;
-        let abortController = null;
-        let chatHistory = [];
+        let isTyping = false;
+        let conversationHistory = [];
 
-        const chatContainer = document.getElementById('chat-container');
-        const chatWrapper = document.getElementById('chat-wrapper');
-        const previewSection = document.getElementById('preview-section');
-        const previewFrame = document.getElementById('preview-frame');
-        const sendBtn = document.getElementById('send-btn');
-        const modePopup = document.getElementById('mode-popup');
-        const messageInput = document.getElementById('message-input');
+        function toggleModeMenu() { document.getElementById('mode-menu').classList.toggle('active'); }
 
-        // Mapping for modes to their respective icons
-        const modeIcons = {
-            'fast': 'zap',
-            'deep-research': 'brain-circuit',
-            'canvas': 'code',
-            'study': 'graduation-cap'
-        };
-
-        function toggleModePopup() { modePopup.classList.toggle('active'); }
-
-        function setMode(mode, iconName) {
+        function changeMode(mode, icon) {
             currentMode = mode;
-            const iconEl = document.getElementById('active-mode-icon');
-            iconEl.setAttribute('data-lucide', iconName);
-            lucide.createIcons({nodes: [iconEl]});
-            document.querySelectorAll('.mode-option').forEach(opt => {
-                opt.classList.remove('active');
-                if(opt.textContent.toLowerCase().includes(mode.replace('-', ' '))) opt.classList.add('active');
-            });
-            modePopup.classList.remove('active');
-            if(mode !== 'canvas' && mode !== 'study') closePreview();
+            const iconEl = document.getElementById('mode-icon');
+            iconEl.setAttribute('data-lucide', icon);
+            lucide.createIcons();
+            document.querySelectorAll('.mode-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`mode-${mode}`).classList.add('selected');
+            document.getElementById('mode-menu').classList.remove('active');
+            document.getElementById('user-input').focus();
         }
 
-        function closePreview() { previewSection.classList.remove('active'); }
-        function openPreview(html) {
-            previewSection.classList.add('active');
-            const doc = previewFrame.contentWindow.document;
-            doc.open(); doc.write(html); doc.close();
+        function useSuggestion(text, mode, icon) {
+            changeMode(mode, icon);
+            document.getElementById('user-input').value = text;
+            handleSend();
         }
 
-        // Updated quickSend to automatically set the mode before submitting
-        function quickSend(text, targetMode = null) {
-            if (targetMode && modeIcons[targetMode]) {
-                setMode(targetMode, modeIcons[targetMode]);
-            }
-            messageInput.value = text;
-            document.getElementById('chat-form').dispatchEvent(new Event('submit'));
-        }
+        async function handleSend() {
+            const input = document.getElementById('user-input');
+            const msg = input.value.trim();
+            if(!msg || isTyping) return;
 
-        async function smartType(container, text) {
-            const sections = text.split(/(```[\s\S]*?```)/g);
-            for (let chunk of sections) {
-                if (!chunk || !isProcessing) continue;
-                if (chunk.startsWith('```')) {
-                    const codeBox = document.createElement('div');
-                    codeBox.innerHTML = marked.parse(chunk);
-                    container.appendChild(codeBox);
-                    codeBox.querySelectorAll('pre code').forEach(hljs.highlightElement);
-                } else {
-                    const textSpan = document.createElement('div');
-                    container.appendChild(textSpan);
-                    let i = 0;
-                    let currentText = "";
-                    const batchSize = 5;
-                    while (i < chunk.length && isProcessing) {
-                        currentText += chunk.slice(i, i + batchSize);
-                        textSpan.innerHTML = marked.parse(currentText);
-                        i += batchSize;
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                        await new Promise(r => setTimeout(r, 1));
-                    }
-                    textSpan.innerHTML = marked.parse(chunk);
-                }
-            }
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
+            const grid = document.getElementById('suggestions-grid');
+            if(grid) grid.remove();
 
-        const canvas = document.getElementById('neural-canvas');
-        const ctx = canvas.getContext('2d');
-        let mouse = { x: null, y: null, radius: 180 };
+            const wrapper = document.getElementById('chat-wrapper');
+            wrapper.innerHTML += `<div class="user-bubble">${msg}</div>`;
+            input.value = '';
+            scrollToBottom();
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.onresize = resize;
-        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
-        window.onmouseleave = () => { mouse.x = null; mouse.y = null; };
-        resize();
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vX = (Math.random() - 0.5) * 0.5;
-                this.vY = (Math.random() - 0.5) * 0.5;
-                this.baseSize = Math.random() * 1.5 + 0.5;
-                this.size = this.baseSize;
-                this.hues = [230, 190, 270, 320];
-                this.hue = this.hues[Math.floor(Math.random() * this.hues.length)];
-            }
-            update() {
-                this.x += this.vX; this.y += this.vY;
-                if(this.x < 0 || this.x > canvas.width) this.vX *= -1;
-                if(this.y < 0 || this.y > canvas.height) this.vY *= -1;
-
-                if(mouse.x != null) {
-                    let dx = mouse.x - this.x;
-                    let dy = mouse.y - this.y;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-                    if(dist < mouse.radius) {
-                        const force = (mouse.radius - dist) / mouse.radius;
-                        this.x -= dx * force * 0.03;
-                        this.y -= dy * force * 0.03;
-                        this.size = this.baseSize * (1 + force * 2);
-                    } else {
-                        this.size = this.baseSize;
-                    }
-                }
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.fillStyle = `hsla(${this.hue}, 80%, 70%, 0.6)`;
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-                if (this.size > 2) {
-                    ctx.shadowBlur = 10;
-                    ctx.shadowColor = `hsla(${this.hue}, 80%, 70%, 0.6)`;
-                } else {
-                    ctx.shadowBlur = 0;
-                }
-            }
-        }
-
-        const particleCount = window.innerWidth < 768 ? 40 : 100;
-        const particles = Array.from({length: particleCount}, () => new Particle());
-
-        function animate(time) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            for(let i=0; i<particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-
-                for(let j=i+1; j<particles.length; j++) {
-                    let dx = particles[i].x - particles[j].x;
-                    let dy = particles[i].y - particles[j].y;
-                    let dist = Math.sqrt(dx*dx + dy*dy);
-
-                    if(dist < 150) {
-                        ctx.beginPath();
-                        const grad = ctx.createLinearGradient(particles[i].x, particles[i].y, particles[j].x, particles[j].y);
-                        grad.addColorStop(0, `hsla(${particles[i].hue}, 70%, 60%, ${0.2 * (1 - dist/150)})`);
-                        grad.addColorStop(1, `hsla(${particles[j].hue}, 70%, 60%, ${0.2 * (1 - dist/150)})`);
-
-                        ctx.strokeStyle = grad;
-                        ctx.lineWidth = 0.8 * (1 - dist/150);
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-
-                        if (Math.sin(time / 500 + i) > 0.98) {
-                            ctx.beginPath();
-                            ctx.fillStyle = `hsla(${particles[i].hue}, 80%, 70%, 0.8)`;
-                            const pulsePos = (Math.sin(time / 200) + 1) / 2;
-                            const px = particles[i].x + (particles[j].x - particles[i].x) * pulsePos;
-                            const py = particles[i].y + (particles[j].y - particles[i].y) * pulsePos;
-                            ctx.arc(px, py, 1.5, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    }
-                }
-            }
-            requestAnimationFrame(animate);
-        }
-        animate(0);
-
-        function updateButtonUI(loading) {
-            isProcessing = loading;
-            if (loading) {
-                sendBtn.classList.add('is-active');
-                sendBtn.innerHTML = '<i data-lucide="square" class="w-5 h-5 fill-current"></i>';
-            } else {
-                sendBtn.classList.remove('is-active');
-                sendBtn.innerHTML = '<i data-lucide="arrow-up" class="w-5 h-5"></i>';
-            }
-            lucide.createIcons({nodes: [sendBtn]});
-        }
-
-        document.getElementById('chat-form').onsubmit = async (e) => {
-            e.preventDefault();
-            if (isProcessing) {
-                if (abortController) abortController.abort();
-                isProcessing = false;
-                updateButtonUI(false);
-                return;
-            }
-
-            const val = messageInput.value.trim();
-            if(!val) return;
-
-            const suggestions = document.getElementById('start-suggestions');
-            if(suggestions) suggestions.style.display = 'none';
-
-            updateButtonUI(true);
-            abortController = new AbortController();
-
-            const uDiv = document.createElement('div');
-            uDiv.className = 'chat-bubble chat-bubble-user';
-            uDiv.innerText = val;
-            chatWrapper.appendChild(uDiv);
-
-            messageInput.value = ''; messageInput.style.height = 'auto';
-
-            const aiDiv = document.createElement('div');
-            aiDiv.className = 'chat-bubble chat-bubble-ai';
-            aiDiv.innerHTML = `<div class="ai-avatar"><i data-lucide="cpu" class="w-4 h-4 text-white"></i></div>
-                <div class="ai-content"><div class="thinking-pulse">ANALYZING...</div></div>`;
-            chatWrapper.appendChild(aiDiv);
-            lucide.createIcons({nodes:[aiDiv]});
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            const aiId = 'ai-' + Date.now();
+            wrapper.innerHTML += `
+                <div class="ai-bubble">
+                    <div class="ai-avatar"><i data-lucide="zap" class="text-white w-5 h-5"></i></div>
+                    <div class="ai-content" id="${aiId}"><span class="animate-pulse">mmm... processing... 🚀</span></div>
+                </div>`;
+            lucide.createIcons();
 
             try {
-                const res = await fetch('/api/chat', {
+                isTyping = true;
+                const response = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: val, mode: currentMode, history: chatHistory }),
-                    signal: abortController.signal
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: msg,
+                        mode: currentMode,
+                        history: conversationHistory
+                    })
                 });
 
-                const data = await res.json();
-                const contentArea = aiDiv.querySelector('.ai-content');
-                contentArea.innerHTML = '';
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
 
-                if (data.error) {
-                    contentArea.innerHTML = `<p class="text-red-400">${data.error}</p>`;
-                } else {
-                    let responseText = data.response;
-                    const htmlMatch = responseText.match(/```html([\s\S]*?)```/);
-                    if (htmlMatch && (currentMode === 'canvas' || currentMode === 'study')) openPreview(htmlMatch[1]);
+                const fullText = data.response;
+                conversationHistory.push({role: "user", content: msg});
+                conversationHistory.push({role: "assistant", content: fullText});
 
-                    await smartType(contentArea, responseText);
-                    chatHistory.push({role: "user", content: val}, {role: "assistant", content: responseText});
+                document.getElementById(aiId).innerHTML = "";
+                startMixedTyping(aiId, fullText);
+            } catch (e) {
+                document.getElementById(aiId).innerHTML = `<div class="text-red-400 p-3 border border-red-900/50 rounded bg-red-900/20 font-mono text-xs">DX-1 ERROR: Connection to Flask server lost. Mmm... yep, check your terminal! 🚀</div>`;
+                isTyping = false;
+            }
+        }
+
+        function startMixedTyping(id, fullText) {
+            const el = document.getElementById(id);
+            const segments = fullText.split(/(```[\s\S]*?```)/g);
+            let segmentIndex = 0;
+
+            function next() {
+                if (segmentIndex >= segments.length) {
+                    finish(el, fullText);
+                    return;
                 }
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    aiDiv.querySelector('.ai-content').innerHTML = "System Error.";
+                let seg = segments[segmentIndex];
+                if (seg.startsWith('```')) {
+                    el.innerHTML += marked.parse(seg);
+                    segmentIndex++;
+                    hljs.highlightAll();
+                    next();
                 } else {
-                    aiDiv.querySelector('.ai-content').innerHTML = '<p class="text-gray-500 italic text-xs">Stopped.</p>';
+                    typeText(seg, () => { segmentIndex++; next(); });
                 }
-            } finally {
-                updateButtonUI(false);
+            }
+
+            function typeText(text, cb) {
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (i < text.length) {
+                        let partial = segments.slice(0, segmentIndex).join("") + text.substring(0, i + 1);
+                        el.innerHTML = marked.parse(partial);
+                        i++;
+                        if (i % 8 === 0) scrollToBottom();
+                    } else {
+                        clearInterval(interval);
+                        cb();
+                    }
+                }, 4);
+            }
+            next();
+        }
+
+        function finish(el, text) {
+            isTyping = false;
+            el.innerHTML = marked.parse(text);
+            hljs.highlightAll();
+
+            let lastCode = null;
+            el.querySelectorAll('pre').forEach(pre => {
+                const code = pre.querySelector('code').innerText;
+                const bar = document.createElement('div');
+                bar.className = 'code-action-bar';
+
+                const copyBtn = createActionBtn('copy', () => {
+                    navigator.clipboard.writeText(code);
+                    copyBtn.innerHTML = '<i data-lucide="check"></i>';
+                    setTimeout(() => { copyBtn.innerHTML = '<i data-lucide="copy"></i>'; lucide.createIcons(); }, 1500);
+                    lucide.createIcons();
+                });
+
+                bar.appendChild(copyBtn);
+                if (code.toLowerCase().includes('<!doctype html>') || code.toLowerCase().includes('<html')) {
+                    const playBtn = createActionBtn('play', () => openPreview(code));
+                    bar.appendChild(playBtn);
+                    lastCode = code;
+                }
+                pre.appendChild(bar);
+            });
+
+            if (lastCode && (currentMode === 'canvas' || currentMode === 'study')) openPreview(lastCode);
+            lucide.createIcons();
+            scrollToBottom();
+            document.getElementById('user-input').focus();
+        }
+
+        function createActionBtn(icon, onClick) {
+            const btn = document.createElement('div');
+            btn.className = 'action-icon-btn';
+            btn.innerHTML = `<i data-lucide="${icon}"></i>`;
+            btn.onclick = (e) => { e.stopPropagation(); onClick(); };
+            return btn;
+        }
+
+        function openPreview(html) {
+            document.getElementById('preview-pane').classList.add('active');
+            document.getElementById('preview-frame').srcdoc = html;
+        }
+
+        function closePreview() {
+            document.getElementById('preview-pane').classList.remove('active');
+            document.getElementById('preview-frame').srcdoc = "";
+        }
+
+        function scrollToBottom() {
+            const c = document.getElementById('chat-container');
+            c.scrollTop = c.scrollHeight;
+        }
+
+        // --- ENHANCED COLORFUL NEURAL BACKGROUND ---
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let pts = [];
+        const colors = ['#6366f1', '#f43f5e', '#22d3ee', '#a855f7', '#fbbf24'];
+
+        window.onresize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        window.onresize();
+
+        for(let i=0; i<70; i++) {
+            pts.push({
+                x: Math.random()*canvas.width,
+                y: Math.random()*canvas.height,
+                vx: (Math.random()-0.5)*0.6,
+                vy: (Math.random()-0.5)*0.6,
+                color: colors[Math.floor(Math.random()*colors.length)],
+                size: Math.random() * 2 + 1.5,
+                glow: Math.random() * 15 + 5
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+
+            // Draw connections with slight color blending
+            ctx.lineWidth = 0.6;
+            for(let i=0; i<pts.length; i++) {
+                for(let j=i+1; j<pts.length; j++) {
+                    const dx = pts[i].x - pts[j].x;
+                    const dy = pts[i].y - pts[j].y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < 160) {
+                        const alpha = (1 - dist/160) * 0.4;
+                        ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.moveTo(pts[i].x, pts[i].y);
+                        ctx.lineTo(pts[j].x, pts[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Draw glowing points
+            pts.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if(p.x<0||p.x>canvas.width) p.vx*=-1;
+                if(p.y<0||p.y>canvas.height) p.vy*=-1;
+
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = p.glow;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        // Final Fix: Force focus on start and ensure Enter key works
+        document.getElementById('user-input').onkeydown = e => {
+            if(e.key === 'Enter') {
+                e.preventDefault();
+                handleSend();
             }
         };
 
-        messageInput.oninput = function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 150) + 'px'; };
-        messageInput.onkeydown = function(e) { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('chat-form').dispatchEvent(new Event('submit')); } };
+        window.addEventListener('mousedown', (e) => {
+           // Allow clicks only to bubble up if not on background
+        });
+
+        window.onload = () => {
+            document.getElementById('user-input').focus();
+            // Re-check focus after a tiny delay to bypass browser lock
+            setTimeout(() => document.getElementById('user-input').focus(), 500);
+        };
     </script>
 </body>
 </html>

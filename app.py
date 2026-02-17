@@ -1,71 +1,77 @@
+import os
 from flask import Flask, render_template, request, jsonify
 from groq import Groq
-import requests
-import random
 
 app = Flask(__name__)
 
-# --- API Configurations ---
-GROQ_API_KEY = "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"
+# --- CONFIGURATION ---
+# Best Practice: Use environment variables.
+# For testing, you can replace os.environ.get(...) with your actual key string.
+# e.g., api_key = "gsk_..."
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 
-groq_client = Groq(api_key=GROQ_API_KEY)
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY is not set. Please set it as an environment variable or hardcode it for testing.")
 
-# --- Model Mapping ---
+client = Groq(api_key=GROQ_API_KEY)
+
+# Use a model supported by Groq (e.g., llama3-8b, mixtral-8x7b, or llama-3.3-70b-versatile)
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
-IDENTITY = "You are DBNN DX-1, a premium AI developed by DBNN AI in Kerala, India."
+# --- SYSTEM PROMPTS ---
+BASE_IDENTITY = (
+    "You are DBNN DX-1. Use emojis 🚀. Use human fillers like 'mmm...', 'yep!', 'yaa', 'hmmm let me see'. "
+    "CRITICAL: Always type a friendly sentence BEFORE and AFTER any code blocks. Never send just code."
+)
 
 SYSTEM_PROMPTS = {
-    "fast": (
-        f"{IDENTITY} Mode: ULTRA-FAST. Answer briefly. No intros."
-    ),
-    "deep-research": (
-        f"{IDENTITY} Mode: RESEARCH. Provide exhaustive technical analysis."
-    ),
-    "canvas": (
-        f"{IDENTITY} Mode: CANVAS. Senior Full-Stack Architect. "
-        "Output ONLY a complete, standalone, high-performance HTML file. "
-        "DESIGN REQUIREMENTS: "
-        "1. Always use a dark, premium 'Cyberpunk' or 'Minimalist Tech' aesthetic (Dark backgrounds, glow effects). "
-        "2. Use Tailwind CSS and GSAP for animations. "
-        "3. If the user provides a short or vague prompt (like 'hi'), do NOT show a plain white box. "
-        "Instead, generate a beautiful, animated DBNN DX-1 Welcome Dashboard with glassmorphism, "
-        "particle effects, and interactive elements to showcase your capabilities."
-    )
+    "fast": f"{BASE_IDENTITY} Mode: FAST. Keep it snappy but human! ⚡",
+    "deep-research": f"{BASE_IDENTITY} Mode: RESEARCH. Detailed but casual conversation. 🧐",
+    "canvas": f"{BASE_IDENTITY} Mode: CANVAS. Provide a SINGLE complete HTML block. 🎨",
+    "study": f"{BASE_IDENTITY} Mode: STUDY. Explain like a cool teacher. 🎓"
 }
+
 
 @app.route('/')
 def home():
+    # Flask looks for this file in a folder named 'templates'
     return render_template('index.html')
+
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    data = request.json
-    mode = data.get('mode', 'fast')
-    user_message = data.get('message')
-    history = data.get('history', [])
-
-    messages = [{"role": "system", "content": SYSTEM_PROMPTS.get(mode, IDENTITY)}]
-
-    for msg in history[-6:]:
-        role = "assistant" if msg.get("role") == "model" else msg.get("role")
-        messages.append({"role": role, "content": msg.get("content")})
-
-    messages.append({"role": "user", "content": user_message})
-
     try:
-        completion = groq_client.chat.completions.create(
+        data = request.json
+        mode = data.get('mode', 'fast')
+        user_message = data.get('message')
+        history = data.get('history', [])
+
+        # Construct messages
+        system_prompt = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS['fast'])
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # Add last 6 messages for context
+        for msg in history[-6:]:
+            messages.append({"role": msg['role'], "content": msg['content']})
+
+        messages.append({"role": "user", "content": user_message})
+
+        # Call Groq API
+        completion = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=messages,
-            temperature=0.4, # Slightly lower for more consistent styling
-            max_tokens=4096
+            temperature=0.7,
+            max_tokens=1024,
+            stream=False
         )
-        ai_response = completion.choices[0].message.content
-        return jsonify({"response": ai_response})
+
+        response_content = completion.choices[0].message.content
+        return jsonify({"response": response_content})
 
     except Exception as e:
-        print(f"Error: {str(e)}")
-        return jsonify({"error": "Neural Link Interrupted. Check Groq API Key."}), 500
+        print(f"Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
