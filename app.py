@@ -1,21 +1,24 @@
 import os
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from groq import Groq
 
 app = Flask(__name__)
 
+# --- CORS CONFIGURATION ---
+# This allows your Netlify frontend (on a different domain) to communicate with this Render backend.
+CORS(app)
+
 # --- CONFIGURATION ---
-# Best Practice: Use environment variables.
-# For testing, you can replace os.environ.get(...) with your actual key string.
-# e.g., api_key = "gsk_..."
+# Replace the string below with your actual API key or set it in your Render environment variables.
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 
 if not GROQ_API_KEY:
-    raise ValueError("GROQ_API_KEY is not set. Please set it as an environment variable or hardcode it for testing.")
+    raise ValueError("GROQ_API_KEY is not set. Please set it as an environment variable.")
 
 client = Groq(api_key=GROQ_API_KEY)
 
-# Use a model supported by Groq (e.g., llama3-8b, mixtral-8x7b, or llama-3.3-70b-versatile)
+# Using Llama 3.3 70B via Groq for high-speed, high-quality intelligence.
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 # --- SYSTEM PROMPTS ---
@@ -31,12 +34,10 @@ SYSTEM_PROMPTS = {
     "study": f"{BASE_IDENTITY} Mode: STUDY. Explain like a cool teacher. 🎓"
 }
 
-
 @app.route('/')
 def home():
-    # Flask looks for this file in a folder named 'templates'
+    # Serves the index.html from the 'templates' folder.
     return render_template('index.html')
-
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -46,17 +47,21 @@ def chat():
         user_message = data.get('message')
         history = data.get('history', [])
 
-        # Construct messages
+        if not user_message:
+            return jsonify({"error": "No message provided"}), 400
+
+        # Construct messages for the Groq API
         system_prompt = SYSTEM_PROMPTS.get(mode, SYSTEM_PROMPTS['fast'])
         messages = [{"role": "system", "content": system_prompt}]
 
-        # Add last 6 messages for context
+        # Append conversation history for context (last 6 messages)
         for msg in history[-6:]:
-            messages.append({"role": msg['role'], "content": msg['content']})
+            if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                messages.append({"role": msg['role'], "content": msg['content']})
 
         messages.append({"role": "user", "content": user_message})
 
-        # Call Groq API
+        # Call Groq API for lightning-fast inference
         completion = client.chat.completions.create(
             model=DEFAULT_MODEL,
             messages=messages,
@@ -69,9 +74,10 @@ def chat():
         return jsonify({"response": response_content})
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Server Error: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # 'PORT' is automatically provided by Render; defaults to 5000 for local testing.
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
