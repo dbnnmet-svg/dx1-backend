@@ -1,5 +1,2 @@
-flask
-flask-cors
-groq
-python-dotenv
-gunicorn
+pip install flask flask-cors groq gunicorn python-dotenv
+pip freeze > requirements.txt
