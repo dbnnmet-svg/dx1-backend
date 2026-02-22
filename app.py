@@ -4,19 +4,29 @@ import json
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 from groq import Groq
+from dotenv import load_dotenv  # New import for local development
+
+# Load variables from .env file if it exists
+load_dotenv()
 
 app = Flask(__name__)
 
-# --- CORS CONFIGURATION (Essential for Render & Local Cross-Talk) ---
+# --- CORS CONFIGURATION ---
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # --- CONFIGURATION ---
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+# This will pull from your .env file locally OR from Render's settings online
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    print("⚠️ CRITICAL ERROR: GROQ_API_KEY is missing! 🚀")
+    print("Local: Ensure you have a .env file with GROQ_API_KEY=your_key")
+    print("Render: Ensure you added GROQ_API_KEY in the Environment tab.")
+
 client = Groq(api_key=GROQ_API_KEY)
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
 # --- BRANDED IDENTITY ---
-# Injected your specific developer info and DBNNAI origin
 BASE_IDENTITY = (
     "You are DBNN DX-1, a high-speed Neural OS developed by DBNNAI (Deep Brain Network Connected) in Kerala. "
     "You were created by a single dedicated developer, not a group. "
@@ -50,14 +60,13 @@ def chat():
             messages.append({"role": msg['role'], "content": msg['content']})
         messages.append({"role": "user", "content": user_message})
 
-        # --- STREAMING IMPLEMENTATION ---
         def generate():
             completion = client.chat.completions.create(
                 model=DEFAULT_MODEL,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=4096,
-                stream=True # Enable word-by-word streaming
+                stream=True
             )
             for chunk in completion:
                 if chunk.choices[0].delta.content:
@@ -72,4 +81,5 @@ def chat():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    # debug=False is safer for production/Render
+    app.run(debug=False, host='0.0.0.0', port=port)
