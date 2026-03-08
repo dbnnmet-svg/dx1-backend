@@ -1,563 +1,294 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>DBNN DX-1 | Neural OS</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>DX-1 | DBNNAI Neural OS</title>
 
-<!-- External Assets -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
 
-<style>
-:root {
-  --bg-deep: #050508;
-  --bg-surface: #0a0a0f;
-  --glass-bg: rgba(15, 15, 20, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --primary: #6366f1;
-  --text-main: #f8fafc;
-}
+    <style>
+        :root {
+            --bg: #020205;
+            --red: #ff3e3e;
+            --blue: #3e8bff;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+        }
 
-/* Base Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: #f8fafc; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; }
 
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: var(--bg-deep);
-}
+        #neural-canvas { position: fixed; top: 0; left: 0; z-index: 1; opacity: 0.35; pointer-events: none; }
+        .glow { position: fixed; width: 60vw; height: 60vw; border-radius: 50%; filter: blur(140px); z-index: 0; opacity: 0.12; pointer-events: none; }
+        .red-glow { top: -20%; left: -10%; background: var(--red); }
+        .blue-glow { bottom: -20%; right: -10%; background: var(--blue); }
 
-body {
-  background:
-    radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 100% 100%, rgba(239, 68, 68, 0.15) 0%, transparent 40%),
-    var(--bg-deep);
-  color: var(--text-main);
-  font-family: 'Inter', sans-serif;
-  display: flex;
-}
+        #main-layout { position: relative; z-index: 10; display: flex; width: 100vw; height: 100vh; }
+        #chat-section { flex: 1; display: flex; flex-direction: column; height: 100%; position: relative; z-index: 10; }
 
-h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
+        .dx-logo {
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 5.5rem; letter-spacing: -4px;
+            background: linear-gradient(to right, var(--blue), var(--red));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 30px rgba(62, 139, 255, 0.3));
+        }
 
-#neural-canvas {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  z-index: 0;
-  pointer-events: none;
-}
+        .chat-container { flex: 1; overflow-y: auto; padding: 25px; display: none; scroll-behavior: smooth; z-index: 20; }
+        .chat-wrapper { max-width: 850px; margin: 0 auto; display: flex; flex-direction: column; padding-bottom: 160px; }
 
-#main-layout {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  width: 100%;
-  height: 100%;
-}
+        .user-bubble {
+            align-self: flex-end; background: var(--glass); border: 1px solid var(--border);
+            padding: 15px 24px; border-radius: 25px 25px 4px 25px; max-width: 80%;
+            margin-bottom: 30px; backdrop-filter: blur(10px); font-size: 0.95rem;
+        }
 
-.dx-hero-logo {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 900;
-  font-size: 4rem;
-  letter-spacing: -4px;
-  margin-bottom: -10px;
-  background: linear-gradient(135deg, #60a5fa 0%, #f87171 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 25px rgba(96, 165, 250, 0.6));
-  animation: logoPulse 4s infinite ease-in-out;
-}
+        .ai-bubble { display: flex; gap: 18px; margin-bottom: 35px; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-@keyframes logoPulse {
-  0%, 100% { filter: drop-shadow(0 0 25px rgba(96, 165, 250, 0.4)); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 40px rgba(248, 113, 113, 0.6)); transform: scale(1.02); }
-}
+        .ai-avatar {
+            width: 44px; height: 44px; border-radius: 14px; background: #000;
+            border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .ai-avatar.pro { border-color: var(--red); box-shadow: 0 0 15px rgba(255, 62, 62, 0.3); }
+        .ai-avatar.std { border-color: var(--blue); box-shadow: 0 0 15px rgba(62, 139, 255, 0.3); }
 
-.top-left-logo {
-  position: fixed;
-  top: 20px;
-  left: 24px;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 800;
-  font-size: 1.5rem;
-  letter-spacing: -1px;
-}
+        .thinking-std { font-size: 11px; font-weight: 800; color: var(--blue); text-transform: uppercase; letter-spacing: 2px; }
+        .thinking-pro { width: 160px; height: 3px; background: rgba(255, 62, 62, 0.1); border-radius: 4px; overflow: hidden; position: relative; }
+        .pro-bar { width: 40%; height: 100%; background: var(--red); position: absolute; animation: pro-flow 1.5s infinite ease-in-out; }
+        @keyframes pro-flow { from { left: -50%; } to { left: 120%; } }
 
-.dx-text-small {
-  background: linear-gradient(to right, #60a5fa, #f87171);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.4));
-}
+        .input-area {
+            position: absolute; bottom: 0; left: 0; width: 100%; padding: 40px 20px;
+            background: linear-gradient(to top, var(--bg) 80%, transparent);
+            display: flex; justify-content: center; z-index: 100;
+            pointer-events: none;
+        }
 
-#chat-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-width: 0;
-}
+        .input-container-main { width: 100%; max-width: 800px; position: relative; pointer-events: auto; }
 
-#hero-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  text-align: center;
-  transition: all 0.5s ease;
-}
+        .input-island {
+            background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(30px); border: 1px solid var(--border);
+            border-radius: 40px; padding: 10px 12px 10px 20px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
 
-.neon-text {
-  font-size: 2.5rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.9);
-  text-transform: lowercase;
-  letter-spacing: -1px;
-  margin-bottom: 2.5rem;
-}
+        input { background: transparent; border: none; flex: 1; color: #fff; outline: none; font-size: 16px; min-height: 30px; }
 
-.chat-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: none;
-}
+        .pop-menu { position: absolute; bottom: calc(100% + 15px); background: #0a0a0f; border: 1px solid var(--border); border-radius: 20px; padding: 10px; display: none; flex-direction: column; min-width: 180px; z-index: 200; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .pop-item { padding: 12px 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; color: #666; transition: 0.2s; }
+        .pop-item:hover, .pop-item.active { background: rgba(255,255,255,0.05); color: #fff; }
 
-.chat-wrapper {
-  max-width: 850px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 180px;
-}
+        #preview-pane { position: absolute; top: 0; right: -100%; width: 50vw; height: 100%; background: #fff; transition: right 0.5s cubic-bezier(0.16, 1, 0.3, 1); border-left: 1px solid var(--border); z-index: 50; display: flex; flex-direction: column; box-shadow: -20px 0 50px rgba(0,0,0,0.5); }
+        #preview-pane.active { right: 0; }
 
-.ai-bubble { display: flex; gap: 16px; margin-bottom: 32px; position: relative; }
-.ai-avatar {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: linear-gradient(45deg, #1e1e2e, #2a2a40);
-  border: 1px solid var(--glass-border);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
-}
-
-.user-bubble {
-  align-self: flex-end;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  padding: 12px 20px;
-  border-radius: 20px 20px 4px 20px;
-  max-width: 80%;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.apple-code-wrapper { margin: 24px 0; }
-.ai-content pre {
-  background: #16161e !important;
-  border-radius: 0 0 12px 12px !important;
-  margin: 0 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top: none;
-  overflow: hidden;
-}
-
-.code-header {
-  background: #242433;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px 12px 0 0;
-}
-
-.dot { width: 12px; height: 12px; border-radius: 50%; }
-.dot-red { background: #ff5f56; }
-.dot-yellow { background: #ffbd2e; }
-.dot-green { background: #27c93f; }
-
-.ai-content code {
-  display: block;
-  padding: 20px !important;
-  font-family: 'Fira Code', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.input-area-wrapper {
-  position: absolute;
-  bottom: 0; width: 100%; padding: 24px 20px 10px;
-  background: linear-gradient(to top, var(--bg-deep) 70%, transparent);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.input-container-main { width: 100%; max-width: 800px; position: relative; }
-
-.input-island {
-  background: rgba(20, 20, 30, 0.7); backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px); border: 1px solid var(--glass-border);
-  border-radius: 24px; padding: 8px 12px 8px 16px;
-  display: flex; align-items: center; gap: 8px;
-  box-shadow: 0 15px 50px rgba(0,0,0,0.5);
-}
-
-#mode-popup {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 12px;
-  background: rgba(15, 15, 25, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  padding: 8px;
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 160px;
-  z-index: 100;
-}
-
-.mode-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  color: #94a3b8;
-}
-
-.mode-option.active {
-  background: rgba(99, 102, 241, 0.15);
-  color: white;
-}
-
-.mode-trigger-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-input { background: transparent; border: none; flex: 1; color: white; outline: none; font-size: 15px; height: 44px; }
-
-.footer-disclaimer {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
-  margin-top: 12px;
-  letter-spacing: 0.5px;
-  text-align: center;
-}
-
-#suggestions-grid {
-  display: grid; gap: 16px;
-  grid-template-columns: repeat(3, 1fr);
-  width: 100%; max-width: 700px;
-}
-
-.suggestion-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--glass-border);
-  padding: 20px; border-radius: 24px;
-  transition: all 0.4s;
-  cursor: pointer;
-}
-
-.suggestion-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: translateY(-8px);
-}
-
-#preview-pane {
-  position: fixed; right: -100%; top: 0; bottom: 0; width: 100%;
-  background: #ffffff; z-index: 1000;
-  transition: right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  display: flex; flex-direction: column;
-}
-@media (min-width: 1024px) { #preview-pane { width: 50%; } }
-#preview-pane.active { right: 0; }
-
-.cursor { display: inline-block; width: 6px; height: 14px; background: var(--primary); animation: blink 0.8s infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-
-#mobile-preview-trigger {
-  position: fixed; top: 20px; right: 20px; z-index: 60;
-  display: none; background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  padding: 10px; border-radius: 12px; color: white;
-}
-</style>
+        pre code { font-family: 'Fira Code', monospace !important; font-size: 13px !important; border-radius: 12px; padding: 16px !important; background: #08080c !important; border: 1px solid var(--border); display: block; overflow-x: auto; margin: 10px 0;}
+        .markdown-content p { margin-bottom: 12px; }
+    </style>
 </head>
 <body>
+    <div class="glow red-glow"></div>
+    <div class="glow blue-glow"></div>
+    <canvas id="neural-canvas"></canvas>
 
-<canvas id="neural-canvas"></canvas>
+    <div id="main-layout">
+        <section id="chat-section">
+            <div id="hero" class="flex-1 flex flex-col items-center justify-center text-center p-6">
+                <div class="dx-logo">DX-1</div>
+                <p class="text-slate-500 tracking-[0.6em] text-[10px] font-bold uppercase mb-12">Deep Brain Neural Network</p>
+                <div class="flex gap-4">
+                    <button class="bg-white/5 border border-white/5 px-8 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest hover:border-blue-500/50 hover:bg-white/10 transition" onclick="setMode('deepthink')">Deep Analysis</button>
+                    <button class="bg-white/5 border border-white/5 px-8 py-4 rounded-full text-[10px] font-bold uppercase tracking-widest hover:border-red-500/50 hover:bg-white/10 transition" onclick="setMode('canvas')">Canvas Forge</button>
+                </div>
+            </div>
 
-<div class="top-left-logo">
-  <span class="dx-text-small">DX</span>
-</div>
+            <div id="chat-container" class="chat-container">
+                <div class="chat-wrapper" id="chat-wrapper"></div>
+            </div>
 
-<div id="main-layout">
-  <button id="mobile-preview-trigger" onclick="togglePreview()">
-    <i data-lucide="layout" class="w-5 h-5"></i>
-  </button>
+            <div class="input-area">
+                <div class="input-container-main">
+                    <div id="model-pop" class="pop-menu left-0">
+                        <div class="pop-item active" onclick="setModel('dx1')"><i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i> DX-1 Standard</div>
+                        <div class="pop-item" onclick="setModel('pro')"><i data-lucide="shield" class="w-4 h-4 text-red-400"></i> DX-1 PRO Core</div>
+                    </div>
 
-  <section id="chat-section">
-    <div id="hero-container">
-      <div class="dx-hero-logo">DX</div>
-      <h2 class="neon-text font-display">what do you need?</h2>
+                    <div id="mode-pop" class="pop-menu left-[20%]">
+                        <div class="pop-item active" onclick="setMode('fast')"><i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i> FAST</div>
+                        <div class="pop-item" onclick="setMode('deepthink')"><i data-lucide="brain" class="w-4 h-4 text-purple-400"></i> DEEPTHINK</div>
+                        <div class="pop-item" onclick="setMode('canvas')"><i data-lucide="layout" class="w-4 h-4 text-emerald-400"></i> CANVAS</div>
+                    </div>
 
-      <div id="suggestions-grid">
-        <div class="suggestion-card" onclick="setMode('canvas'); quickSend('Design a futuristic music player UI')">
-          <i data-lucide="layout" class="text-indigo-400 w-8 h-8 mb-3"></i>
-          <div class="text-sm font-bold text-white uppercase tracking-widest">Canvas</div>
-          <p class="text-[11px] text-slate-500 mt-2">Interactive Preview</p>
-        </div>
-        <div class="suggestion-card" onclick="setMode('deepthink'); quickSend('Explain quantum entanglement in simple terms')">
-          <i data-lucide="brain-circuit" class="text-amber-400 w-8 h-8 mb-3"></i>
-          <div class="text-sm font-bold text-white uppercase tracking-widest">Reason</div>
-          <p class="text-[11px] text-slate-500 mt-2">Deep Intelligence</p>
-        </div>
-        <div class="suggestion-card" onclick="setMode('fast'); quickSend('Write a python script to scrape news headlines')">
-          <i data-lucide="zap" class="text-pink-400 w-8 h-8 mb-3"></i>
-          <div class="text-sm font-bold text-white uppercase tracking-widest">Fast</div>
-          <p class="text-[11px] text-slate-500 mt-2">Instant Answers</p>
-        </div>
-      </div>
+                    <div class="input-island">
+                        <button onclick="togglePop('model-pop', event)" id="model-display" class="bg-white/5 border border-white/10 px-4 py-2.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-2 hover:bg-white/10 transition">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> DX-1
+                        </button>
+                        <button onclick="togglePop('mode-pop', event)" id="mode-display" class="bg-white/5 border border-white/10 px-4 py-2.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-2 hover:bg-white/10 transition">
+                            <i data-lucide="zap" class="w-3.5 h-3.5 text-yellow-400"></i> FAST
+                        </button>
+
+                        <input type="text" id="user-input" placeholder="Initiate neural link..." autocomplete="off" />
+
+                        <button onclick="handleSend()" class="bg-white text-black p-3 rounded-full hover:scale-105 active:scale-95 transition">
+                            <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-center mt-5 text-[8px] text-slate-700 tracking-[0.5em] font-black uppercase">DBNNAI Neural OS</p>
+                </div>
+            </div>
+        </section>
+
+        <aside id="preview-pane">
+            <div class="bg-slate-100 p-4 border-b flex justify-between items-center">
+                <div class="flex items-center gap-2 text-black">
+                    <i data-lucide="monitor" class="w-4 h-4"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-widest">Neural Canvas Preview</span>
+                </div>
+                <button class="close-btn text-black" onclick="closePreview()"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <iframe id="preview-frame" class="w-full h-full bg-white border-none flex-1"></iframe>
+        </aside>
     </div>
 
-    <div id="chat-container" class="chat-container">
-      <div class="chat-wrapper" id="chat-wrapper"></div>
-    </div>
+    <script>
+        lucide.createIcons();
 
-    <div class="input-area-wrapper">
-      <div class="input-container-main">
-        <div id="mode-popup">
-          <div class="mode-option active" data-mode="fast" onclick="setMode('fast')">
-            <i data-lucide="zap" class="w-4 h-4 text-pink-400"></i>
-            <span class="text-xs font-bold uppercase">Fast Mode</span>
-          </div>
-          <div class="mode-option" data-mode="deepthink" onclick="setMode('deepthink')">
-            <i data-lucide="brain-circuit" class="w-4 h-4 text-amber-400"></i>
-            <span class="text-xs font-bold uppercase">DeepThink</span>
-          </div>
-          <div class="mode-option" data-mode="canvas" onclick="setMode('canvas')">
-            <i data-lucide="layout" class="w-4 h-4 text-indigo-400"></i>
-            <span class="text-xs font-bold uppercase">Canvas</span>
-          </div>
-        </div>
+        let currentModel = 'dx1', currentMode = 'fast';
+        const input = document.getElementById('user-input');
+        const wrapper = document.getElementById('chat-wrapper');
+        const container = document.getElementById('chat-container');
+        const preview = document.getElementById('preview-pane');
 
-        <div class="input-island">
-          <button onclick="toggleModePopup(event)" class="mode-trigger-btn" id="active-mode-display">
-            <i data-lucide="zap" class="w-4 h-4 text-pink-400"></i>
-            <span>FAST</span>
-            <i data-lucide="chevron-up" class="w-3 h-3 ml-1 opacity-50"></i>
-          </button>
+        function togglePop(id, event) {
+            event.stopPropagation();
+            const el = document.getElementById(id);
+            const isVisible = el.style.display === 'flex';
+            document.querySelectorAll('.pop-menu').forEach(p => p.style.display = 'none');
+            el.style.display = isVisible ? 'none' : 'flex';
+        }
 
-          <input id="user-input" placeholder="Ask DX-1 anything..." autocomplete="off" />
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.pop-menu').forEach(p => p.style.display = 'none');
+        });
 
-          <button onclick="handleSend()" class="bg-white text-black w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
-            <i data-lucide="arrow-up" class="w-5 h-5"></i>
-          </button>
-        </div>
-      </div>
-      <div class="footer-disclaimer">DX-1 Neural OS can make mistakes. Verify important info. Built by DBNNAI.</div>
-    </div>
-  </section>
+        function setModel(m) {
+            currentModel = m;
+            document.getElementById('model-display').innerHTML = m === 'pro' ?
+                `<i data-lucide="shield" class="w-3.5 h-3.5 text-red-400"></i> DX-1 PRO` :
+                `<i data-lucide="cpu" class="w-3.5 h-3.5 text-blue-400"></i> DX-1`;
+            lucide.createIcons();
+        }
 
-  <div id="preview-pane">
-    <div class="flex items-center justify-between p-4 bg-slate-900 text-white">
-      <div class="flex items-center gap-2">
-        <i data-lucide="monitor" class="w-4 h-4 text-indigo-400"></i>
-        <span class="text-xs font-bold uppercase tracking-widest">Live Preview</span>
-      </div>
-      <button onclick="closePreview()" class="hover:bg-white/10 p-2 rounded-full transition-colors">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
-    <iframe id="preview-frame" class="w-full flex-1 border-none bg-white"></iframe>
-  </div>
-</div>
+        function setMode(m) {
+            currentMode = m;
+            const modes = {
+                fast: { i: 'zap', c: 'text-yellow-400', l: 'FAST' },
+                deepthink: { i: 'brain', c: 'text-purple-400', l: 'DEEPTHINK' },
+                canvas: { i: 'layout', c: 'text-emerald-400', l: 'CANVAS' }
+            };
+            const mode = modes[m];
+            document.getElementById('mode-display').innerHTML = `<i data-lucide="${mode.i}" class="w-3.5 h-3.5 ${mode.c}"></i> ${mode.l}`;
+            lucide.createIcons();
+        }
 
-<script>
-lucide.createIcons();
+        function scrollToBottom() {
+            container.scrollTop = container.scrollHeight;
+        }
 
-const renderer = new marked.Renderer();
-renderer.code = function(code, language) {
-  return `
-    <div class="apple-code-wrapper">
-      <div class="code-header">
-        <div class="dot dot-red"></div>
-        <div class="dot dot-yellow"></div>
-        <div class="dot dot-green"></div>
-        <span class="ml-auto text-[10px] text-slate-400 font-mono uppercase tracking-widest">${language || 'code'}</span>
-      </div>
-      <pre><code class="language-${language}">${code}</code></pre>
-    </div>
-  `;
-};
-marked.setOptions({ renderer, breaks: true });
+        async function handleSend() {
+            const val = input.value.trim();
+            if(!val) return;
 
-const input = document.getElementById('user-input');
-const wrapper = document.getElementById('chat-wrapper');
-const chatContainer = document.getElementById('chat-container');
-const hero = document.getElementById('hero-container');
-const previewPane = document.getElementById('preview-pane');
-const modePopup = document.getElementById('mode-popup');
-const modeDisplay = document.getElementById('active-mode-display');
-const BACKEND_URL = window.location.protocol === 'file:' ? "http://127.0.0.1:5000" : "";
+            document.getElementById('hero').style.display = 'none';
+            container.style.display = 'block';
+            input.value = '';
 
-let isTyping = false;
-let currentMode = 'fast';
+            wrapper.insertAdjacentHTML('beforeend', `<div class="user-bubble">${val}</div>`);
 
-function toggleModePopup(e) {
-  e.stopPropagation();
-  modePopup.style.display = modePopup.style.display === 'flex' ? 'none' : 'flex';
-}
+            const aiId = 'ai-' + Date.now();
+            const isPro = currentModel === 'pro';
 
-document.addEventListener('click', () => { modePopup.style.display = 'none'; });
+            let loaderHtml = `<div class="thinking-std animate-pulse">Processing Fast Request...</div>`;
+            if (currentMode === 'deepthink' || isPro) {
+                loaderHtml = `<div class="flex flex-col gap-2"><span class="text-[9px] text-red-500 font-bold uppercase tracking-widest">Deep Synapse Analysis</span><div class="thinking-pro"><div class="pro-bar"></div></div></div>`;
+            }
 
-function setMode(mode) {
-  currentMode = mode;
-  const modes = {
-    fast: { label: 'FAST', icon: 'zap', color: 'text-pink-400' },
-    deepthink: { label: 'DEEPTHINK', icon: 'brain-circuit', color: 'text-amber-400' },
-    canvas: { label: 'CANVAS', icon: 'layout', color: 'text-indigo-400' }
-  };
-  const m = modes[mode];
-  modeDisplay.innerHTML = `<i data-lucide="${m.icon}" class="w-4 h-4 ${m.color}"></i><span>${m.label}</span><i data-lucide="chevron-up" class="w-3 h-3 ml-1 opacity-50"></i>`;
-  document.querySelectorAll('.mode-option').forEach(opt => opt.classList.toggle('active', opt.dataset.mode === mode));
-  lucide.createIcons();
-  modePopup.style.display = 'none';
-}
+            wrapper.insertAdjacentHTML('beforeend', `
+                <div class="ai-bubble">
+                    <div class="ai-avatar ${isPro ? 'pro' : 'std'}"><i data-lucide="${isPro ? 'shield' : 'cpu'}" class="w-5 h-5 ${isPro ? 'text-red-400' : 'text-blue-400'}"></i></div>
+                    <div id="${aiId}" class="flex-1 text-sm leading-relaxed pt-2 markdown-content">${loaderHtml}</div>
+                </div>`);
 
-function quickSend(text) {
-  input.value = text;
-  handleSend();
-}
+            lucide.createIcons();
+            scrollToBottom();
 
-async function handleSend() {
-  const msg = input.value.trim();
-  if(!msg || isTyping) return;
+            const aiDiv = document.getElementById(aiId);
+            let fullText = "";
 
-  if(hero.style.display !== 'none') {
-    hero.style.opacity = '0';
-    setTimeout(() => {
-      hero.style.display = 'none';
-      chatContainer.style.display = 'block';
-    }, 400);
-  }
+            try {
+                // Ensure the fetch URL matches your Flask route exactly. Relative path works best.
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: val, model: currentModel, mode: currentMode })
+                });
 
-  input.value = '';
-  wrapper.insertAdjacentHTML('beforeend', `<div class="user-bubble text-white">${msg}</div>`);
-  scrollToBottom();
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                aiDiv.innerHTML = "";
 
-  const aiId = 'ai-' + Date.now();
-  wrapper.insertAdjacentHTML('beforeend', `
-    <div class="ai-bubble">
-      <div class="ai-avatar"><i data-lucide="cpu" class="text-indigo-400 w-5 h-5"></i></div>
-      <div class="ai-content" id="${aiId}"><span class="cursor"></span></div>
-    </div>`);
-  lucide.createIcons();
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    fullText += decoder.decode(value);
+                    aiDiv.innerHTML = marked.parse(fullText);
+                    scrollToBottom();
+                }
 
-  const aiDiv = document.getElementById(aiId);
-  let fullText = "";
+                if(currentMode === 'canvas') {
+                    const codeMatch = fullText.match(/```html\s?([\s\S]*?)```/) || fullText.match(/<html[\s\S]*?<\/html>/i);
+                    if(codeMatch) {
+                        const code = codeMatch[1] || codeMatch[0];
+                        document.getElementById('preview-frame').srcdoc = code;
+                        preview.classList.add('active');
+                    }
+                }
+                hljs.highlightAll();
+            } catch (e) {
+                aiDiv.innerHTML = "<span class='text-red-500'>Neural link severed. Check console for details.</span>";
+                console.error(e);
+            }
+        }
 
-  try {
-    isTyping = true;
-    const response = await fetch(`${BACKEND_URL}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg, mode: currentMode })
-    });
+        function closePreview() { preview.classList.remove('active'); }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') handleSend();
+        });
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      fullText += decoder.decode(value, { stream: true });
-      aiDiv.innerHTML = marked.parse(fullText) + '<span class="cursor"></span>';
-      scrollToBottom();
-    }
-
-    aiDiv.innerHTML = marked.parse(fullText);
-
-    if(fullText.includes("<!DOCTYPE html>")) {
-      const code = fullText.match(/<!DOCTYPE html>[\s\S]*?<\/html>/i)?.[0];
-      if(code) {
-        document.getElementById('preview-frame').srcdoc = code;
-        document.getElementById('mobile-preview-trigger').style.display = 'block';
-        if(window.innerWidth > 1024) togglePreview();
-      }
-    }
-  } catch (e) {
-    aiDiv.innerHTML = `<span class="text-red-400 text-xs">Pathways blocked. Check connection.</span>`;
-  } finally {
-    isTyping = false;
-  }
-}
-
-function togglePreview() {
-  previewPane.classList.toggle('active');
-}
-
-function closePreview() {
-  previewPane.classList.remove('active');
-}
-
-function scrollToBottom() {
-  chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-const canvas = document.getElementById('neural-canvas');
-const ctx = canvas.getContext('2d');
-let points = [];
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-window.addEventListener('resize', resize);
-resize();
-for(let i=0; i<30; i++) points.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3 });
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  points.forEach((p, i) => {
-    p.x += p.vx; p.y += p.vy;
-    if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
-    if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI*2); ctx.fillStyle = i % 2 === 0 ? "rgba(59, 130, 246, 0.3)" : "rgba(239, 68, 68, 0.3)"; ctx.fill();
-    for(let j=i+1; j<points.length; j++) {
-      let d = Math.hypot(p.x - points[j].x, p.y - points[j].y);
-      if(d < 180) { ctx.strokeStyle = i % 2 === 0 ? `rgba(59, 130, 246, ${0.1 * (1 - d/180)})` : `rgba(239, 68, 68, ${0.1 * (1 - d/180)})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(points[j].x, points[j].y); ctx.stroke(); }
-    }
-  });
-  requestAnimationFrame(draw);
-}
-draw();
-input.onkeydown = e => { if (e.key === 'Enter') handleSend(); };
-</script>
+        // Background Particles
+        const cvs = document.getElementById('neural-canvas');
+        const ctx = cvs.getContext('2d');
+        let pts = [];
+        function res() { cvs.width = window.innerWidth; cvs.height = window.innerHeight; }
+        window.onresize = res; res();
+        for(let i=0; i<45; i++) pts.push({x:Math.random()*cvs.width, y:Math.random()*cvs.height, vx:Math.random()-0.5, vy:Math.random()-0.5});
+        function anim() {
+            ctx.clearRect(0,0,cvs.width,cvs.height);
+            pts.forEach(p => {
+                p.x+=p.vx; p.y+=p.vy;
+                if(p.x<0||p.x>cvs.width) p.vx*=-1; if(p.y<0||p.y>cvs.height) p.vy*=-1;
+                ctx.fillStyle = "rgba(62,139,255,0.15)";
+                ctx.beginPath(); ctx.arc(p.x,p.y,1.5,0,Math.PI*2); ctx.fill();
+            });
+            requestAnimationFrame(anim);
+        }
+        anim();
+    </script>
 </body>
 </html>
