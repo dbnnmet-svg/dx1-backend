@@ -219,10 +219,10 @@
             }
 
             wrapper.insertAdjacentHTML('beforeend', `
-                <div class="ai-bubble">
-                    <div class="ai-avatar ${isPro ? 'pro' : 'std'}"><i data-lucide="${isPro ? 'shield' : 'cpu'}" class="w-5 h-5 ${isPro ? 'text-red-400' : 'text-blue-400'}"></i></div>
-                    <div id="${aiId}" class="flex-1 text-sm leading-relaxed pt-2 markdown-content">${loaderHtml}</div>
-                </div>`);
+            <div class="ai-bubble">
+                <div class="ai-avatar ${isPro ? 'pro' : 'std'}"><i data-lucide="${isPro ? 'shield' : 'cpu'}" class="w-5 h-5 ${isPro ? 'text-red-400' : 'text-blue-400'}"></i></div>
+                <div id="${aiId}" class="flex-1 text-sm leading-relaxed pt-2 markdown-content">${loaderHtml}</div>
+            </div>`);
 
             lucide.createIcons();
             scrollToBottom();
@@ -231,7 +231,6 @@
             let fullText = "";
 
             try {
-                // Ensure the fetch URL matches your Flask route exactly. Relative path works best.
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
