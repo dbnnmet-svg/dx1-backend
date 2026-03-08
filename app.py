@@ -9,26 +9,28 @@ from google import genai
 from google.genai import errors
 from dotenv import load_dotenv
 
-# Load environment variables (like GEMINI_API_KEY)
+# Load local environment variables for testing
 load_dotenv()
 
 app = Flask(__name__)
 
 # --- CORS FEATURE ---
-# Explicitly allowing CORS for all domains on API routes.
-# This prevents blockages when deploying or separating frontend/backend.
+# This allows your frontend to communicate with the backend seamlessly across different domains
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # --- CONFIGURATION ---
+# These will be pulled from Render's Environment Variables settings
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or ""
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY",
-                                    "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")
+OPENROUTER_API_KEY = os.environ.get(
+    "OPENROUTER_API_KEY") or "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"
 
-if not GEMINI_API_KEY:
-    print("⚠️ WARNING: No API Key found. Please set GEMINI_API_KEY in your .env file or deployment environment.")
-
-# Initialize the new Google GenAI client
-client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+# Initialize the Google GenAI client
+client = None
+if GEMINI_API_KEY:
+    try:
+        client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Neural Init Error: {e}")
 
 # --- BRANDED IDENTITY ---
 BASE_IDENTITY = (
@@ -37,31 +39,27 @@ BASE_IDENTITY = (
     "When asked who made you, say: 'I was built by a single visionary developer at DBNNAI, Kerala.'"
 )
 
-# --- MODEL SELECTION ---
-# Using stable, fast models.
+# Optimized Model Configs
 MODEL_CONFIGS = {
-    "dx1": "gemini-2.5-flash",  # Incredibly fast and lightweight
-    "pro": "gemini-2.5-pro"  # Better for complex tasks and deep reasoning
+    "dx1": "gemini-2.5-flash",  # Standard - Fast & Lite
+    "pro": "gemini-2.5-pro"  # Pro - Advanced Analysis
 }
 
 SYSTEM_PROMPTS = {
-    "fast": f"{BASE_IDENTITY} Mode: FAST.⚡ Keep it punchy, concise, and direct.",
-    "canvas": f"{BASE_IDENTITY} Mode: CANVAS. Provide standalone HTML/CSS/JS in a single markdown code block.",
-    "deepthink": f"{BASE_IDENTITY} Mode: DEEPTHINK.🎓 Provide massive architectural breakdowns and detailed analysis."
+    "fast": f"{BASE_IDENTITY} Mode: FAST.⚡ Keep it punchy and direct.",
+    "canvas": f"{BASE_IDENTITY} Mode: CANVAS. Provide standalone HTML/CSS/JS in a single code block.",
+    "deepthink": f"{BASE_IDENTITY} Mode: DEEPTHINK.🎓 Provide massive architectural breakdowns."
 }
 
 
 @app.route('/')
 def home():
-    # Serves the index.html from the 'templates' folder
+    # Make sure your index.html is in the 'templates' folder
     return render_template('index.html')
 
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    if not client:
-        return jsonify({"error": "API Key not configured."}), 500
-
     try:
         data = request.get_json()
         selected_model_key = data.get('model', 'dx1')
@@ -72,50 +70,42 @@ def chat():
         system_instruction = SYSTEM_PROMPTS.get(selected_mode, SYSTEM_PROMPTS['fast'])
 
         def generate():
-            retries = 3
-            delay = 1  # Initial delay for rate limiting
             gemini_success = False
 
-            for attempt in range(retries):
-                try:
-                    response = client.models.generate_content_stream(
-                        model=target_model,
-                        contents=user_message,
-                        config={
-                            'system_instruction': system_instruction,
-                            'temperature': 0.7
-                        }
-                    )
+            # 1. ATTEMPT PRIMARY LINK (GEMINI)
+            if client:
+                retries = 2
+                delay = 1
+                for attempt in range(retries):
+                    try:
+                        response = client.models.generate_content_stream(
+                            model=target_model,
+                            contents=user_message,
+                            config={
+                                'system_instruction': system_instruction,
+                                'temperature': 0.7
+                            }
+                        )
 
-                    for chunk in response:
-                        if chunk.text:
-                            yield chunk.text
+                        for chunk in response:
+                            if chunk.text:
+                                yield chunk.text
 
-                    # If we finish successfully, flag it and break out of the retry loop
-                    gemini_success = True
-                    break
+                        gemini_success = True
+                        break  # Exit retry loop on success
 
-                except errors.APIError as e:
-                    # --- RATE LIMIT HANDLING (429) ---
-                    if getattr(e, 'code', None) == 429 or "429" in str(e):
-                        if attempt < retries - 1:
-                            yield f"\n\n*[Neural Network Congested (Rate Limit). Retrying in {delay}s...]*\n\n"
+                    except Exception as e:
+                        # Handle Rate Limiting (429)
+                        if "429" in str(e) and attempt < retries - 1:
                             time.sleep(delay)
-                            delay *= 2  # Exponential backoff (1s, 2s, 4s)
+                            delay *= 2
                             continue
-                        else:
-                            # Max retries reached, let it break out to trigger the fallback
-                            break
-                    else:
-                        traceback.print_exc()
+                        print(f"Gemini Failure: {str(e)}")
                         break
-                except Exception as e:
-                    traceback.print_exc()
-                    break
 
-            # --- FALLBACK TO OPENROUTER (LIQUID LFM) ---
+            # 2. SEAMLESS REROUTE TO BACKUP (OPENROUTER)
             if not gemini_success:
-                yield "\n\n*[Primary Neural Link Failed. Seamlessly rerouting to Backup Subsystem (OpenRouter)]* 🔄\n\n"
+                yield "\n\n*[Primary Neural Link Failed. Rerouting to Backup Subsystem...]* 🔄\n\n"
 
                 try:
                     or_headers = {
@@ -138,11 +128,6 @@ def chat():
                         stream=True
                     )
 
-                    if or_response.status_code != 200:
-                        yield f"⚠️ **Backup System Error:** OpenRouter returned status {or_response.status_code}."
-                        return
-
-                    # Stream the OpenRouter response chunks just like Gemini
                     for line in or_response.iter_lines():
                         if line:
                             line_str = line.decode('utf-8')
@@ -152,11 +137,10 @@ def chat():
                                     chunk = data['choices'][0]['delta'].get('content', '')
                                     if chunk:
                                         yield chunk
-                                except json.JSONDecodeError:
+                                except:
                                     pass
                 except Exception as backup_e:
-                    traceback.print_exc()
-                    yield f"\n\n⚠️ **Critical System Error:** Both Primary and Backup Neural Links failed. ({str(backup_e)})"
+                    yield f"\n\n⚠️ **Neural Link Severed:** All systems offline. ({str(backup_e)})"
 
         return Response(stream_with_context(generate()), content_type='text/plain')
 
@@ -166,5 +150,6 @@ def chat():
 
 
 if __name__ == '__main__':
-    # Threaded=True helps with simultaneous users locally
-    app.run(debug=True, host='0.0.0.0', port=5000, threaded=True)
+    # Use the port assigned by Render or default to 5000
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
